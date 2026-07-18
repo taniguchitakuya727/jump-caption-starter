@@ -1,11 +1,16 @@
 const fileInput = document.querySelector("#video-file");
+const jumpCutForm = document.querySelector("#jump-cut-form");
 const selectedFile = document.querySelector("#selected-file");
+const processButton = document.querySelector("#process-video");
 const refreshButton = document.querySelector("#refresh-ffmpeg");
 
 const ffmpegAvailable = document.querySelector("#ffmpeg-available");
 const ffmpegPath = document.querySelector("#ffmpeg-path");
 const ffmpegVersion = document.querySelector("#ffmpeg-version");
 const ffmpegError = document.querySelector("#ffmpeg-error");
+const processLog = document.querySelector("#process-log");
+const processError = document.querySelector("#process-error");
+const resultLinks = document.querySelector("#result-links");
 
 function formatBytes(bytes) {
   if (bytes === 0) return "0 B";
@@ -57,8 +62,75 @@ async function loadFFmpegStatus() {
   }
 }
 
+function setProcessing(isProcessing) {
+  processButton.disabled = isProcessing;
+  processButton.textContent = isProcessing ? "処理中" : "ジャンプカット";
+}
+
+function showResultLinks(data) {
+  resultLinks.hidden = false;
+  resultLinks.innerHTML = "";
+
+  const outputLink = document.createElement("a");
+  outputLink.href = data.output_url;
+  outputLink.textContent = data.output_file;
+  outputLink.target = "_blank";
+
+  const jsonLink = document.createElement("a");
+  jsonLink.href = data.silence_json_url;
+  jsonLink.textContent = data.silence_json_file;
+  jsonLink.target = "_blank";
+
+  resultLinks.append(outputLink, jsonLink);
+}
+
+async function processVideo(event) {
+  event.preventDefault();
+
+  if (!fileInput.files.length) {
+    processError.textContent = "動画ファイルを選択してください。";
+    processError.hidden = false;
+    return;
+  }
+
+  const formData = new FormData(jumpCutForm);
+  setProcessing(true);
+  processError.hidden = true;
+  processError.textContent = "";
+  resultLinks.hidden = true;
+  resultLinks.innerHTML = "";
+  processLog.textContent = "アップロードとFFmpeg処理を開始しました。";
+
+  try {
+    const response = await fetch("/api/jump-cut", {
+      method: "POST",
+      body: formData,
+    });
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.detail || `HTTP ${response.status}`);
+    }
+
+    showResultLinks(data);
+    const summary = [
+      `duration: ${data.duration.toFixed(3)} sec`,
+      `silences: ${data.silences.length}`,
+      "",
+      ...data.logs,
+    ];
+    processLog.textContent = summary.join("\n");
+  } catch (error) {
+    processError.textContent = error.message;
+    processError.hidden = false;
+    processLog.textContent = "処理に失敗しました。";
+  } finally {
+    setProcessing(false);
+  }
+}
+
 fileInput.addEventListener("change", updateSelectedFile);
 refreshButton.addEventListener("click", loadFFmpegStatus);
+jumpCutForm.addEventListener("submit", processVideo);
 
 loadFFmpegStatus();
-

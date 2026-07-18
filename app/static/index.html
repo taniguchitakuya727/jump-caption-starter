@@ -21,15 +21,54 @@
         <div class="tool-grid">
           <section class="panel" aria-labelledby="video-heading">
             <h2 id="video-heading">動画ファイル</h2>
-            <label class="file-picker">
-              <span class="file-picker-title">ファイルを選択</span>
-              <span class="file-picker-meta" id="selected-file">未選択</span>
-              <input
-                id="video-file"
-                type="file"
-                accept="video/*,audio/*,.mp4,.mov,.mkv,.avi,.m4v,.mp3,.m4a,.wav"
-              />
-            </label>
+            <form id="jump-cut-form">
+              <label class="file-picker">
+                <span class="file-picker-title">ファイルを選択</span>
+                <span class="file-picker-meta" id="selected-file">未選択</span>
+                <input
+                  id="video-file"
+                  name="file"
+                  type="file"
+                  accept="video/*,audio/*,.mp4,.mov,.mkv,.avi,.m4v,.mp3,.m4a,.wav"
+                  required
+                />
+              </label>
+
+              <div class="settings-grid">
+                <label>
+                  <span>無音判定音量</span>
+                  <input
+                    name="silence_threshold_db"
+                    type="number"
+                    value="-35"
+                    max="-1"
+                    step="1"
+                  />
+                </label>
+                <label>
+                  <span>最短無音時間</span>
+                  <input
+                    name="min_silence_duration"
+                    type="number"
+                    value="0.5"
+                    min="0.1"
+                    step="0.1"
+                  />
+                </label>
+                <label>
+                  <span>残す余白</span>
+                  <input
+                    name="retained_margin"
+                    type="number"
+                    value="0.15"
+                    min="0"
+                    step="0.05"
+                  />
+                </label>
+              </div>
+
+              <button id="process-video" type="submit">ジャンプカット</button>
+            </form>
           </section>
 
           <section class="panel" aria-labelledby="ffmpeg-heading">
@@ -54,8 +93,14 @@
             <p class="error-text" id="ffmpeg-error" hidden></p>
           </section>
         </div>
+
+        <section class="panel result-panel" aria-labelledby="result-heading">
+          <h2 id="result-heading">処理結果</h2>
+          <div class="result-links" id="result-links" hidden></div>
+          <p class="error-text" id="process-error" hidden></p>
+          <pre id="process-log" aria-live="polite">待機中</pre>
+        </section>
       </section>
     </main>
   </body>
 </html>
-
