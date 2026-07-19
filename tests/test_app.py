@@ -26,11 +26,12 @@ def test_homepage_contains_file_picker() -> None:
     assert response.status_code == 200
     assert "Jump Caption" in response.text
     assert 'type="file"' in response.text
-    assert "/static/app.js?v=sprint4-natural-split" in response.text
-    assert "/static/style.css?v=sprint4-natural-split" in response.text
+    assert "/static/app.js?v=sprint-a-subtitle-quality" in response.text
+    assert "/static/style.css?v=sprint-a-subtitle-quality" in response.text
     assert "字幕エディタ" in response.text
     assert "caption-overlay" in response.text
     assert "続きから" in response.text
+    assert "字幕を読みやすく整形" in response.text
 
 
 def test_jump_cut_endpoint_returns_output_links(monkeypatch, tmp_path) -> None:

@@ -23,6 +23,7 @@ class SubtitleSegment:
     avg_logprob: float | None
     no_speech_prob: float | None
     suspicious: bool
+    words: list[dict[str, object]] | None = None
 
     def to_dict(self) -> dict[str, object]:
         return asdict(self)
@@ -110,11 +111,13 @@ def generate_subtitles(
             str(media_path),
             language=settings.language,
             vad_filter=True,
+            word_timestamps=True,
         )
         segments = [
             _convert_segment(index=index, raw_segment=segment)
             for index, segment in enumerate(raw_segments, start=1)
         ]
+        segments = format_subtitle_segments(segments, SubtitleFormatSettings())
     except Exception as exc:
         raise SubtitleGenerationError(
             "字幕生成に失敗しました。初回はWhisperモデルのダウンロードが必要です。"
@@ -125,6 +128,8 @@ def generate_subtitles(
     logs.append(f"detected language: {getattr(info, 'language', settings.language)}")
     logs.append(f"language probability: {getattr(info, 'language_probability', None)}")
     logs.append(f"segments: {len(segments)}")
+    logs.append("word timestamps: enabled")
+    logs.append("subtitle optimizer: sprint-a-rules")
 
     srt_path.write_text(to_srt(segments), encoding="utf-8")
     txt_path.write_text(to_txt(segments), encoding="utf-8")
@@ -156,7 +161,28 @@ def _convert_segment(index: int, raw_segment: Any) -> SubtitleSegment:
         avg_logprob=avg_logprob,
         no_speech_prob=no_speech_prob,
         suspicious=suspicious,
+        words=_convert_words(getattr(raw_segment, "words", None)),
     )
+
+
+def _convert_words(raw_words: object) -> list[dict[str, object]] | None:
+    if raw_words is None:
+        return None
+
+    words: list[dict[str, object]] = []
+    for raw_word in raw_words:
+        word = str(getattr(raw_word, "word", "")).strip()
+        if not word:
+            continue
+        words.append(
+            {
+                "word": word,
+                "start": float(getattr(raw_word, "start", 0.0)),
+                "end": float(getattr(raw_word, "end", 0.0)),
+                "probability": _optional_float(getattr(raw_word, "probability", None)),
+            }
+        )
+    return words or None
 
 
 def format_srt_time(seconds: float) -> str:
@@ -219,6 +245,7 @@ def segments_from_payload(payload_segments: list[dict[str, object]]) -> list[Sub
                 avg_logprob=_optional_float(raw_segment.get("avg_logprob")),
                 no_speech_prob=_optional_float(raw_segment.get("no_speech_prob")),
                 suspicious=bool(raw_segment.get("suspicious", False)),
+                words=_optional_words(raw_segment.get("words")),
             )
         )
 
@@ -296,29 +323,18 @@ def format_subtitle_segments(
     segments: list[SubtitleSegment],
     settings: SubtitleFormatSettings,
 ) -> list[SubtitleSegment]:
-    merged = merge_short_segments(segments, settings)
-    split_segments: list[SubtitleSegment] = []
-    max_chars = settings.max_chars_per_line * settings.max_lines
+    from app.services.subtitle_optimizer import SubtitleOptimizerSettings, optimize_subtitles
 
-    for segment in merged:
-        plain_text = segment.text.replace("\n", "")
-        if len(plain_text) > max_chars or segment.end - segment.start > settings.max_duration:
-            split_segments.extend(split_long_segment(segment, settings))
-        else:
-            split_segments.append(segment)
-
-    return [
-        SubtitleSegment(
-            index=index,
-            start=segment.start,
-            end=segment.end,
-            text=wrap_subtitle_text(segment.text, settings.max_chars_per_line, settings.max_lines),
-            avg_logprob=segment.avg_logprob,
-            no_speech_prob=segment.no_speech_prob,
-            suspicious=segment.suspicious,
-        )
-        for index, segment in enumerate(split_segments, start=1)
-    ]
+    return optimize_subtitles(
+        segments,
+        SubtitleOptimizerSettings(
+            minimum_duration=settings.min_duration,
+            maximum_duration=settings.max_duration,
+            max_chars_per_caption=settings.max_chars_per_line * settings.max_lines,
+            preferred_chars_per_line=settings.max_chars_per_line,
+            max_lines=settings.max_lines,
+        ),
+    )
 
 
 def merge_short_segments(
@@ -493,6 +509,27 @@ def _optional_float(value: object) -> float | None:
         return float(value)
     except (TypeError, ValueError):
         return None
+
+
+def _optional_words(value: object) -> list[dict[str, object]] | None:
+    if not isinstance(value, list):
+        return None
+    words: list[dict[str, object]] = []
+    for item in value:
+        if not isinstance(item, dict):
+            continue
+        word = str(item.get("word", "")).strip()
+        if not word:
+            continue
+        words.append(
+            {
+                "word": word,
+                "start": _optional_float(item.get("start")),
+                "end": _optional_float(item.get("end")),
+                "probability": _optional_float(item.get("probability")),
+            }
+        )
+    return words or None
 
 
 def write_metadata(

@@ -59,6 +59,27 @@ def test_convert_segment_marks_suspicious() -> None:
     assert segment.suspicious is True
 
 
+def test_convert_segment_keeps_word_timestamps() -> None:
+    raw_segment = SimpleNamespace(
+        start=0,
+        end=1,
+        text="テスト",
+        avg_logprob=-0.2,
+        no_speech_prob=0.1,
+        words=[
+            SimpleNamespace(word="テ", start=0.0, end=0.2, probability=0.9),
+            SimpleNamespace(word="スト", start=0.2, end=0.8, probability=0.8),
+        ],
+    )
+
+    segment = _convert_segment(1, raw_segment)
+
+    assert segment.words == [
+        {"word": "テ", "start": 0.0, "end": 0.2, "probability": 0.9},
+        {"word": "スト", "start": 0.2, "end": 0.8, "probability": 0.8},
+    ]
+
+
 def test_save_subtitle_edit_rewrites_outputs(tmp_path) -> None:
     metadata_path = tmp_path / "sample_cut_subtitles.json"
     metadata_path.write_text(

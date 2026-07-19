@@ -2,7 +2,7 @@
 
 Jump Caption は、Mac / Windows の両方で動くローカルWebアプリとして開発する動画編集補助ツールです。
 
-Sprint 4 では、FastAPI のローカルサーバー、動画ファイル選択UI、FFmpeg検出API、無音検出、ジャンプカット済みMP4出力、無音区間JSON保存、faster-whisper によるローカル字幕生成、ブラウザ上の字幕エディタ、ローカル字幕整形を実装しています。
+Sprint A では、FastAPI のローカルサーバー、動画ファイル選択UI、FFmpeg検出API、無音検出、ジャンプカット済みMP4出力、無音区間JSON保存、faster-whisper によるローカル字幕生成、ブラウザ上の字幕エディタ、Windows起動補助、ルールベースの日本語字幕整形を実装しています。
 
 ## Requirements
 
@@ -113,6 +113,9 @@ pytest
 - `outputs/` に残っている字幕メタデータJSONから字幕エディタを直接開ける
 - 字幕の長さ、改行、短すぎる字幕の結合、長すぎる字幕の分割をローカルで整形できる
 - 字幕分割時は句読点、接続語、助詞、文字数バランスを見て自然な本文境界へ寄せる
+- Whisper認識時に可能な範囲で単語タイムスタンプを取得し、字幕メタデータへ保存する
+- 字幕整形は `app/services/subtitle_optimizer.py` のルールベース処理で行う
+- 整形後に本文欠落、重複、時刻順、重なり、行数、文字数、表示時間を検証する
 
 ## Assumptions
 
@@ -120,10 +123,21 @@ pytest
 - FFmpeg はアプリに同梱せず、ユーザーの `PATH` から検出します。
 - `ffprobe` も `PATH` から検出します。通常は FFmpeg と同時にインストールされます。
 - Sprint 1 のジャンプカットは音声付きMP4を主対象にしています。音声トラックのない動画は後続で対応します。
-- Whisperモデルは初回の字幕生成時にダウンロードされます。初期値は日本語、CPU、`small`、`int8` です。
+- Whisperモデルは初回の字幕生成時にダウンロードされます。初期値は日本語、CPU、`small`、`int8`、word timestamps 有効です。
 - faster-whisper の詳細な認識確信度はモデル出力に依存するため、Sprint 2 では `avg_logprob` と `no_speech_prob` を保存し、怪しい区間のフラグに使います。
 - Sprint 3 の自動保存は、字幕編集後に短い待ち時間を置いてローカルの `outputs/` 内ファイルへ反映します。
 - 途中再開の字幕エディタは、このアプリが生成した `<original>_subtitles.json` を対象にしています。
 - Sprint 4 の字幕整形は外部AI APIを使わず、ローカルのルールベース処理として実装しています。本文の要約や言い換えはしません。
 - 手動分割は現在の動画再生位置を時刻境界にし、本文側は近くの自然な文字境界へ寄せます。
 - Windows対応を妨げないよう、OS固有のパス区切りやシェル前提の処理はアプリ本体に入れていません。
+
+## Subtitle Optimizer Settings
+
+- `minimum_duration`: 0.8 sec
+- `maximum_duration`: 7.0 sec
+- `minimum_gap`: 0.05 sec
+- `preferred_chars_per_second`: 10 chars/sec
+- `maximum_chars_per_second`: 15 chars/sec
+- `max_chars_per_caption`: 36 chars
+- `preferred_chars_per_line`: 18 chars
+- `max_lines`: 2

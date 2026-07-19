@@ -252,7 +252,7 @@ def format_subtitles(filename: str, payload: dict[str, object]) -> dict[str, obj
                 max_chars_per_line=int(payload.get("max_chars_per_line", 18)),
                 max_lines=int(payload.get("max_lines", 2)),
                 min_duration=float(payload.get("min_duration", 0.8)),
-                max_duration=float(payload.get("max_duration", 5.5)),
+                max_duration=float(payload.get("max_duration", 7.0)),
             ),
         )
     except (SubtitleEditError, TypeError, ValueError) as exc:
