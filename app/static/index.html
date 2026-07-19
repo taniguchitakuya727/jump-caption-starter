@@ -4,8 +4,8 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Jump Caption</title>
-    <link rel="stylesheet" href="/static/style.css?v=sprint3-editor-fix" />
-    <script src="/static/app.js?v=sprint3-editor-fix" defer></script>
+    <link rel="stylesheet" href="/static/style.css?v=sprint3-resume" />
+    <script src="/static/app.js?v=sprint3-resume" defer></script>
   </head>
   <body>
     <main class="app-shell">
@@ -144,6 +144,23 @@
           <div class="result-links" id="subtitle-links" hidden></div>
           <p class="error-text" id="process-error" hidden></p>
           <pre id="process-log" aria-live="polite">待機中</pre>
+        </section>
+
+        <section class="panel library-panel" aria-labelledby="library-heading">
+          <div class="panel-heading">
+            <h2 id="library-heading">続きから</h2>
+            <button id="refresh-library" type="button">更新</button>
+          </div>
+          <div class="library-grid">
+            <section aria-labelledby="library-videos-heading">
+              <h3 id="library-videos-heading">カット動画</h3>
+              <div class="library-list" id="video-library">読み込み中</div>
+            </section>
+            <section aria-labelledby="library-subtitles-heading">
+              <h3 id="library-subtitles-heading">字幕</h3>
+              <div class="library-list" id="subtitle-library">読み込み中</div>
+            </section>
+          </div>
         </section>
 
         <section class="panel editor-panel" id="subtitle-editor" hidden>

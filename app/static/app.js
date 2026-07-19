@@ -6,6 +6,7 @@ const processButton = document.querySelector("#process-video");
 const subtitleButton = document.querySelector("#generate-subtitles");
 const refreshButton = document.querySelector("#refresh-ffmpeg");
 const refreshWhisperButton = document.querySelector("#refresh-whisper");
+const refreshLibraryButton = document.querySelector("#refresh-library");
 
 const ffmpegAvailable = document.querySelector("#ffmpeg-available");
 const ffmpegPath = document.querySelector("#ffmpeg-path");
@@ -34,6 +35,8 @@ const saveSubtitlesButton = document.querySelector("#save-subtitles");
 const searchText = document.querySelector("#search-text");
 const replaceText = document.querySelector("#replace-text");
 const replaceAllButton = document.querySelector("#replace-all");
+const videoLibrary = document.querySelector("#video-library");
+const subtitleLibrary = document.querySelector("#subtitle-library");
 
 let lastOutputFile = null;
 let lastSubtitleMetadataFile = null;
@@ -140,10 +143,10 @@ function makeLink(href, text) {
 function showResultLinks(data) {
   resultLinks.hidden = false;
   resultLinks.innerHTML = "";
-  resultLinks.append(
-    makeLink(data.output_url, data.output_file),
-    makeLink(data.silence_json_url, data.silence_json_file),
-  );
+  resultLinks.append(makeLink(data.output_url, data.output_file));
+  if (data.silence_json_url && data.silence_json_file) {
+    resultLinks.append(makeLink(data.silence_json_url, data.silence_json_file));
+  }
 }
 
 function showSubtitleLinks(data) {
@@ -154,6 +157,131 @@ function showSubtitleLinks(data) {
     makeLink(data.txt_url, data.txt_file),
     makeLink(data.metadata_url, data.metadata_file),
   );
+}
+
+function makeLibraryButton(text, onClick) {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.textContent = text;
+  button.addEventListener("click", onClick);
+  return button;
+}
+
+function renderLibraryList(container, items, emptyText, renderItem) {
+  container.innerHTML = "";
+  if (!items.length) {
+    container.textContent = emptyText;
+    return;
+  }
+
+  items.forEach((item) => container.append(renderItem(item)));
+}
+
+async function loadOutputLibrary() {
+  videoLibrary.textContent = "読み込み中";
+  subtitleLibrary.textContent = "読み込み中";
+
+  try {
+    const response = await fetch("/api/outputs");
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+
+    const data = await response.json();
+    renderLibraryList(
+      videoLibrary,
+      data.videos || [],
+      "カット動画はまだありません。",
+      renderVideoLibraryItem,
+    );
+    renderLibraryList(
+      subtitleLibrary,
+      data.subtitle_projects || [],
+      "字幕はまだありません。",
+      renderSubtitleLibraryItem,
+    );
+  } catch (error) {
+    videoLibrary.textContent = "読み込み失敗";
+    subtitleLibrary.textContent = error.message;
+  }
+}
+
+function renderVideoLibraryItem(item) {
+  const row = document.createElement("div");
+  row.className = "library-item";
+
+  const name = document.createElement("span");
+  name.textContent = item.file;
+
+  const actions = document.createElement("div");
+  actions.className = "library-actions";
+  actions.append(
+    makeLink(item.url, "開く"),
+    makeLibraryButton("字幕生成", () => selectExistingVideo(item.file)),
+  );
+
+  row.append(name, actions);
+  return row;
+}
+
+function renderSubtitleLibraryItem(item) {
+  const row = document.createElement("div");
+  row.className = "library-item";
+
+  const name = document.createElement("span");
+  name.textContent = `${item.file} (${item.segments})`;
+
+  const actions = document.createElement("div");
+  actions.className = "library-actions";
+  actions.append(makeLibraryButton("エディタ", () => openExistingSubtitleProject(item.file)));
+
+  row.append(name, actions);
+  return row;
+}
+
+function selectExistingVideo(filename) {
+  lastOutputFile = filename;
+  subtitleForm.hidden = false;
+  subtitleLinks.hidden = true;
+  subtitleLinks.innerHTML = "";
+  subtitleEditor.hidden = true;
+  processError.hidden = true;
+  showResultLinks({
+    output_file: filename,
+    output_url: `/outputs/${filename}`,
+  });
+  processLog.textContent = `${filename} を選択しました。字幕生成できます。`;
+  subtitleForm.scrollIntoView({ behavior: "smooth", block: "center" });
+}
+
+async function openExistingSubtitleProject(filename) {
+  processError.hidden = true;
+  processLog.textContent = `${filename} を読み込み中です。`;
+
+  try {
+    const response = await fetch(`/api/subtitles/${filename}`);
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.detail || `HTTP ${response.status}`);
+    }
+
+    lastOutputFile = data.source;
+    showSubtitleLinks({
+      srt_file: data.source.replace(/\.[^.]+$/, ".srt"),
+      srt_url: `/outputs/${data.source.replace(/\.[^.]+$/, ".srt")}`,
+      txt_file: data.source.replace(/\.[^.]+$/, ".txt"),
+      txt_url: `/outputs/${data.source.replace(/\.[^.]+$/, ".txt")}`,
+      metadata_file: data.metadata_file,
+      metadata_url: `/outputs/${data.metadata_file}`,
+    });
+    openSubtitleEditor(data);
+    processLog.textContent = `${filename} を開きました。`;
+    subtitleEditor.scrollIntoView({ behavior: "smooth", block: "start" });
+  } catch (error) {
+    processError.textContent = error.message;
+    processError.hidden = false;
+    processLog.textContent = "字幕エディタを開けませんでした。";
+  }
 }
 
 function cloneSegments(segments) {
@@ -476,6 +604,7 @@ async function processVideo(event) {
     showResultLinks(data);
     lastOutputFile = data.output_file;
     subtitleForm.hidden = false;
+    loadOutputLibrary();
     const summary = [
       `duration: ${data.duration.toFixed(3)} sec`,
       `silences: ${data.silences.length}`,
@@ -528,6 +657,7 @@ async function generateSubtitles(event) {
 
     showSubtitleLinks(data);
     openSubtitleEditor(data);
+    loadOutputLibrary();
     const suspiciousCount = data.segments.filter((segment) => segment.suspicious).length;
     const summary = [
       `subtitle segments: ${data.segments.length}`,
@@ -548,6 +678,7 @@ async function generateSubtitles(event) {
 fileInput.addEventListener("change", updateSelectedFile);
 refreshButton.addEventListener("click", loadFFmpegStatus);
 refreshWhisperButton.addEventListener("click", loadWhisperStatus);
+refreshLibraryButton.addEventListener("click", loadOutputLibrary);
 jumpCutForm.addEventListener("submit", processVideo);
 subtitleForm.addEventListener("submit", generateSubtitles);
 addSegmentButton.addEventListener("click", addSegment);
@@ -563,3 +694,4 @@ videoPreview.addEventListener("seeked", updateCaptionOverlay);
 
 loadFFmpegStatus();
 loadWhisperStatus();
+loadOutputLibrary();

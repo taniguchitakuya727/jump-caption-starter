@@ -26,10 +26,11 @@ def test_homepage_contains_file_picker() -> None:
     assert response.status_code == 200
     assert "Jump Caption" in response.text
     assert 'type="file"' in response.text
-    assert "/static/app.js?v=sprint3-editor-fix" in response.text
-    assert "/static/style.css?v=sprint3-editor-fix" in response.text
+    assert "/static/app.js?v=sprint3-resume" in response.text
+    assert "/static/style.css?v=sprint3-resume" in response.text
     assert "字幕エディタ" in response.text
     assert "caption-overlay" in response.text
+    assert "続きから" in response.text
 
 
 def test_jump_cut_endpoint_returns_output_links(monkeypatch, tmp_path) -> None:
@@ -77,6 +78,24 @@ def test_whisper_status_endpoint(monkeypatch) -> None:
     assert response.json()["available"] is True
     assert response.json()["default_model"] == "small"
     assert response.json()["default_language"] == "ja"
+
+
+def test_outputs_endpoint_lists_existing_files(monkeypatch, tmp_path) -> None:
+    video_path = tmp_path / "sample_cut.mp4"
+    video_path.write_bytes(b"mp4")
+    metadata_path = tmp_path / "sample_cut_subtitles.json"
+    metadata_path.write_text(
+        '{"source":"sample_cut.mp4","segments":[{"text":"a"}],"logs":[]}',
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(main, "OUTPUT_DIR", tmp_path)
+
+    response = client.get("/api/outputs")
+
+    assert response.status_code == 200
+    assert response.json()["videos"][0]["file"] == "sample_cut.mp4"
+    assert response.json()["subtitle_projects"][0]["file"] == "sample_cut_subtitles.json"
+    assert response.json()["subtitle_projects"][0]["segments"] == 1
 
 
 def test_subtitles_endpoint_returns_output_links(monkeypatch, tmp_path) -> None:

@@ -67,6 +67,45 @@ def whisper_status() -> dict[str, object]:
     }
 
 
+@app.get("/api/outputs")
+def list_outputs() -> dict[str, object]:
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    videos = []
+    subtitle_projects = []
+
+    for path in sorted(OUTPUT_DIR.iterdir(), key=lambda item: item.stat().st_mtime, reverse=True):
+        if not path.is_file():
+            continue
+
+        if path.suffix.lower() == ".mp4":
+            videos.append(
+                {
+                    "file": path.name,
+                    "url": f"/outputs/{path.name}",
+                    "modified": path.stat().st_mtime,
+                }
+            )
+        elif path.name.endswith("_subtitles.json"):
+            try:
+                metadata = load_subtitle_metadata(path)
+            except SubtitleEditError:
+                continue
+
+            source = str(metadata.get("source", ""))
+            subtitle_projects.append(
+                {
+                    "file": path.name,
+                    "url": f"/outputs/{path.name}",
+                    "source": source,
+                    "video_url": f"/outputs/{source}" if source else None,
+                    "segments": len(metadata.get("segments", [])),
+                    "modified": path.stat().st_mtime,
+                }
+            )
+
+    return {"videos": videos, "subtitle_projects": subtitle_projects}
+
+
 @app.post("/api/jump-cut")
 def jump_cut(
     file: UploadFile = File(...),
