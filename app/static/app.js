@@ -344,29 +344,41 @@ function selectSegment(index, seek = true) {
   if (seek && segment) {
     videoPreview.currentTime = Math.max(0, segment.start);
   }
-  updateCaptionOverlay();
+  showCaptionForSegment(segment);
 }
 
 function updateCaptionOverlay() {
   const currentTime = videoPreview.currentTime || 0;
-  const activeIndex = subtitleSegments.findIndex(
-    (segment) => currentTime >= segment.start && currentTime <= segment.end,
-  );
+  const activeIndex = findActiveSegmentIndex(currentTime);
   const activeSegment = subtitleSegments[activeIndex];
 
-  if (!activeSegment || !activeSegment.text.trim()) {
+  showCaptionForSegment(activeSegment);
+
+  if (activeIndex !== -1 && activeIndex !== selectedSegmentIndex) {
+    selectedSegmentIndex = activeIndex;
+    refreshSubtitleRowState();
+  }
+}
+
+function findActiveSegmentIndex(currentTime) {
+  return subtitleSegments.findIndex((segment, index) => {
+    const isLast = index === subtitleSegments.length - 1;
+    return (
+      currentTime >= segment.start &&
+      (currentTime < segment.end || (isLast && currentTime <= segment.end))
+    );
+  });
+}
+
+function showCaptionForSegment(segment) {
+  if (!segment || !segment.text.trim()) {
     captionOverlay.hidden = true;
     captionOverlay.textContent = "";
     return;
   }
 
   captionOverlay.hidden = false;
-  captionOverlay.textContent = activeSegment.text;
-
-  if (activeIndex !== -1 && activeIndex !== selectedSegmentIndex) {
-    selectedSegmentIndex = activeIndex;
-    refreshSubtitleRowState();
-  }
+  captionOverlay.textContent = segment.text;
 }
 
 function refreshSubtitleRowState() {
