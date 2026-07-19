@@ -10,6 +10,8 @@ Sprint 4 では、FastAPI のローカルサーバー、動画ファイル選択
 - FFmpeg
 - macOS または Windows
 
+Windowsで開発者ではない人に試してもらう場合は、`README_WINDOWS.md` と `start_windows.bat` を使ってください。Python 3.10 / 3.11 を推奨します。
+
 ## Setup on macOS
 
 ```bash
@@ -27,6 +29,9 @@ brew install ffmpeg
 
 ## Setup on Windows
 
+簡単に試す場合は、コマンド入力ではなく `start_windows.bat` のダブルクリック起動を推奨します。
+初回は `.venv` の作成、Pythonパッケージのインストール、起動前チェックを行います。
+
 PowerShell:
 
 ```powershell
@@ -42,6 +47,18 @@ winget の例:
 
 ```powershell
 winget install Gyan.FFmpeg
+```
+
+Windows配布用フォルダを作る場合:
+
+```bash
+python tools/build_windows_dist.py
+```
+
+生成先:
+
+```text
+dist_windows/jump-caption-mvp
 ```
 
 ## Run

@@ -23,7 +23,11 @@ def detect_ffmpeg() -> FFmpegDetection:
             available=False,
             path=None,
             version=None,
-            error="ffmpeg was not found on PATH.",
+            error=(
+                "FFmpeg が見つかりません。ジャンプカットには ffmpeg と ffprobe が必要です。"
+                "Windowsでは README_WINDOWS.md の手順で FFmpeg をインストールし、"
+                "PATH から実行できる状態にしてください。"
+            ),
         )
 
     try:
@@ -65,4 +69,3 @@ def detect_ffmpeg() -> FFmpegDetection:
         version=first_line,
         error=None,
     )
-

@@ -13,7 +13,9 @@ def test_detect_ffmpeg_missing(monkeypatch) -> None:
     assert result.available is False
     assert result.path is None
     assert result.version is None
-    assert result.error == "ffmpeg was not found on PATH."
+    assert result.error is not None
+    assert "FFmpeg が見つかりません" in result.error
+    assert "README_WINDOWS.md" in result.error
 
 
 def test_detect_ffmpeg_available(monkeypatch) -> None:
@@ -35,4 +37,3 @@ def test_detect_ffmpeg_available(monkeypatch) -> None:
     assert result.path == "/usr/local/bin/ffmpeg"
     assert result.version == "ffmpeg version 6.1 Copyright"
     assert result.error is None
-

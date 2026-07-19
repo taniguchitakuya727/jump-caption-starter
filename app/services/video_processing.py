@@ -133,7 +133,10 @@ def run_jump_cut(
 
     ffprobe_path = shutil.which("ffprobe")
     if ffprobe_path is None:
-        raise VideoProcessingError("ffprobe was not found on PATH.")
+        raise VideoProcessingError(
+            "ffprobe が見つかりません。通常は FFmpeg と一緒にインストールされます。"
+            "Windowsでは README_WINDOWS.md の手順を確認してください。"
+        )
 
     output_path, silence_json_path = make_output_paths(input_path, output_dir)
     logs: list[str] = []
@@ -297,4 +300,3 @@ def write_silence_json(
         json.dumps(payload, ensure_ascii=False, indent=2),
         encoding="utf-8",
     )
-
