@@ -58,8 +58,7 @@ if errorlevel 1 (
   echo.
   echo [注意] FFmpeg が見つかりません。
   echo ジャンプカットには FFmpeg と ffprobe が必要です。
-  echo winget が使える場合:
-  echo   winget install Gyan.FFmpeg
+  echo PowerShellを使わずに入れる場合は、install_ffmpeg_windows.bat をダブルクリックしてください。
   echo.
   echo インストール後、このウィンドウを閉じて start_windows.bat を起動し直してください。
   echo.

@@ -12,6 +12,7 @@ FILES = [
     "README.md",
     "README_WINDOWS.md",
     "start_windows.bat",
+    "install_ffmpeg_windows.bat",
     "tools/check_windows_readiness.py",
 ]
 
@@ -54,6 +55,7 @@ def main() -> int:
                 "Jump Caption MVP Windows test package",
                 "",
                 "Double-click start_windows.bat to launch.",
+                "If FFmpeg is missing, double-click install_ffmpeg_windows.bat.",
                 "Read README_WINDOWS.md before sending this folder to a tester.",
                 "",
                 "This package does not include Python, FFmpeg, a virtual environment,",

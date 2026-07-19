@@ -10,7 +10,7 @@ Sprint 4 では、FastAPI のローカルサーバー、動画ファイル選択
 - FFmpeg
 - macOS または Windows
 
-Windowsで開発者ではない人に試してもらう場合は、`README_WINDOWS.md` と `start_windows.bat` を使ってください。Python 3.10 / 3.11 を推奨します。
+Windowsで開発者ではない人に試してもらう場合は、`README_WINDOWS.md`、`start_windows.bat`、`install_ffmpeg_windows.bat` を使ってください。PowerShellを使わず、ダブルクリック中心で起動できます。Python 3.10 / 3.11 を推奨します。
 
 ## Setup on macOS
 
@@ -32,20 +32,21 @@ brew install ffmpeg
 簡単に試す場合は、コマンド入力ではなく `start_windows.bat` のダブルクリック起動を推奨します。
 初回は `.venv` の作成、Pythonパッケージのインストール、起動前チェックを行います。
 
-PowerShell:
+FFmpeg が未インストールの場合は `install_ffmpeg_windows.bat` をダブルクリックしてください。
 
-```powershell
+コマンドで手動セットアップしたい場合:
+
+```bat
 py -3 -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install --upgrade pip
-python -m pip install -e ".[dev]"
+.\.venv\Scripts\python.exe -m pip install --upgrade pip
+.\.venv\Scripts\python.exe -m pip install -e ".[dev]"
 ```
 
 FFmpeg は公式ビルド、winget、または Chocolatey などでインストールし、`ffmpeg.exe` が `PATH` から実行できる状態にしてください。
 
 winget の例:
 
-```powershell
+```bat
 winget install Gyan.FFmpeg
 ```
 
@@ -81,11 +82,11 @@ macOS:
 JUMP_CAPTION_PORT=8080 python -m app
 ```
 
-Windows PowerShell:
+Windowsのコマンドプロンプト:
 
-```powershell
-$env:JUMP_CAPTION_PORT = "8080"
-python -m app
+```bat
+set JUMP_CAPTION_PORT=8080
+.\.venv\Scripts\python.exe -m app
 ```
 
 ## Test

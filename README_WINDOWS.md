@@ -23,10 +23,12 @@ Pythonパッケージは `start_windows.bat` が自動で入れます。主な�
 
 1. このフォルダをスペースや日本語を含まない短い場所へ置きます。
    例: `C:\JumpCaption`
-2. `start_windows.bat` をダブルクリックします。
-3. 初回は `.venv` 作成とPythonパッケージのインストールが走ります。
-4. 起動前チェックでPython、FFmpeg、ffprobe、保存フォルダの状態を表示します。
-5. ブラウザで `http://127.0.0.1:8000` が開きます。
+2. Pythonを入れていない場合は、Python 3.10 または 3.11 のWindowsインストーラーを入れます。
+3. FFmpegを入れていない場合は、`install_ffmpeg_windows.bat` をダブルクリックします。
+4. `start_windows.bat` をダブルクリックします。
+5. 初回は `.venv` 作成とPythonパッケージのインストールが走ります。
+6. 起動前チェックでPython、FFmpeg、ffprobe、保存フォルダの状態を表示します。
+7. ブラウザで `http://127.0.0.1:8000` が開きます。
 
 起動中は黒いコマンド画面を閉じないでください。閉じるとアプリも停止します。
 
@@ -36,15 +38,19 @@ Pythonパッケージは `start_windows.bat` が自動で入れます。主な�
 
 ## FFmpegの入れ方
 
-PowerShellまたはコマンドプロンプトで次を実行します。
+PowerShellを使わずに入れる場合は、`install_ffmpeg_windows.bat` をダブルクリックしてください。
+このbatは Windows の `winget` を使って FFmpeg を入れます。
 
-```powershell
+コマンドプロンプトで手動実行する場合は次です。
+
+```bat
 winget install Gyan.FFmpeg
 ```
 
-インストール後、Windowsを再起動するか、新しいコマンドプロンプトで次を確認します。
+インストール後、Windowsを再起動するか、新しく `start_windows.bat` を起動し直してください。
+確認したい場合は、コマンドプロンプトで次を実行します。
 
-```powershell
+```bat
 ffmpeg -version
 ffprobe -version
 ```
@@ -92,7 +98,7 @@ C:\Users\<ユーザー名>\.cache\huggingface\hub
 
 開発PC側で次を実行すると、友人に渡しやすい最小フォルダを作れます。
 
-```powershell
+```bat
 python tools\build_windows_dist.py
 ```
 
@@ -102,7 +108,7 @@ python tools\build_windows_dist.py
 dist_windows\jump-caption-mvp
 ```
 
-このフォルダには、アプリ本体、`start_windows.bat`、`README_WINDOWS.md`、設定ファイル、空の `outputs` / `uploads` が入ります。Python本体、FFmpeg、Whisperモデル、仮想環境、動画ファイルは含みません。
+このフォルダには、アプリ本体、`start_windows.bat`、`install_ffmpeg_windows.bat`、`README_WINDOWS.md`、設定ファイル、空の `outputs` / `uploads` が入ります。Python本体、FFmpeg、Whisperモデル、仮想環境、動画ファイルは含みません。
 
 ## 困ったとき
 
