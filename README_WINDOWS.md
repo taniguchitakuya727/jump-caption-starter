@@ -5,9 +5,9 @@
 ## まず必要なもの
 
 - Windows 10 / 11
-- Python 3.10 または 3.11 推奨
-- FFmpeg
 - インターネット接続
+
+`start_windows.bat` が Python と FFmpeg の有無を確認します。入っていない場合は、日本語の案内を表示して止まります。
 
 Python 3.9以上で動く想定ですが、友人PCでの確認は Python 3.10 / 3.11 をおすすめします。Python 3.12以降は一部の音声認識パッケージの対応状況で詰まる可能性があります。
 
@@ -23,12 +23,11 @@ Pythonパッケージは `start_windows.bat` が自動で入れます。主な�
 
 1. このフォルダをスペースや日本語を含まない短い場所へ置きます。
    例: `C:\JumpCaption`
-2. Pythonを入れていない場合は、Python 3.10 または 3.11 のWindowsインストーラーを入れます。
-3. FFmpegを入れていない場合は、`install_ffmpeg_windows.bat` をダブルクリックします。
-4. `start_windows.bat` をダブルクリックします。
-5. 初回は `.venv` 作成とPythonパッケージのインストールが走ります。
-6. 起動前チェックでPython、FFmpeg、ffprobe、保存フォルダの状態を表示します。
-7. ブラウザで `http://127.0.0.1:8000` が開きます。
+2. `start_windows.bat` をダブルクリックします。
+3. PythonまたはFFmpegが入っていない場合は、日本語の案内が表示されます。
+4. PythonとFFmpegが入っていれば、初回だけ `.venv` 作成とPythonパッケージのインストールが走ります。
+5. 起動前チェックでPython、FFmpeg、ffprobe、保存フォルダの状態を表示します。
+6. ブラウザで `http://127.0.0.1:8000` が開きます。
 
 起動中は黒いコマンド画面を閉じないでください。閉じるとアプリも停止します。
 
@@ -38,8 +37,8 @@ Pythonパッケージは `start_windows.bat` が自動で入れます。主な�
 
 ## FFmpegの入れ方
 
-PowerShellを使わずに入れる場合は、`install_ffmpeg_windows.bat` をダブルクリックしてください。
-このbatは Windows の `winget` を使って FFmpeg を入れます。
+FFmpegが入っていない状態で `start_windows.bat` を起動すると、日本語の案内が出ます。
+画面の案内に従って `Y` を入力すると、同梱の `install_ffmpeg_windows.bat` で自動インストールを試します。
 
 コマンドプロンプトで手動実行する場合は次です。
 
@@ -57,7 +56,7 @@ ffprobe -version
 
 `ffmpeg` と `ffprobe` の両方が使える必要があります。
 
-`start_windows.bat` はFFmpegが見つからなくてもサーバー自体は起動しますが、ジャンプカット実行時には失敗します。その場合は上の手順でFFmpegを入れてから、`start_windows.bat` を起動し直してください。
+`start_windows.bat` はFFmpegまたはffprobeが見つからない場合、アプリを起動せずに案内を表示します。インストール後、もう一度 `start_windows.bat` をダブルクリックしてください。
 
 ## Whisperモデルについて
 

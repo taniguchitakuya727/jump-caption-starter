@@ -10,7 +10,7 @@ Sprint 4 では、FastAPI のローカルサーバー、動画ファイル選択
 - FFmpeg
 - macOS または Windows
 
-Windowsで開発者ではない人に試してもらう場合は、`README_WINDOWS.md`、`start_windows.bat`、`install_ffmpeg_windows.bat` を使ってください。PowerShellを使わず、ダブルクリック中心で起動できます。Python 3.10 / 3.11 を推奨します。
+Windowsで開発者ではない人に試してもらう場合は、`README_WINDOWS.md` を添えて `start_windows.bat` をダブルクリックしてもらってください。PythonやFFmpegがない場合は日本語で案内し、揃っていれば自動起動します。
 
 ## Setup on macOS
 
@@ -30,9 +30,7 @@ brew install ffmpeg
 ## Setup on Windows
 
 簡単に試す場合は、コマンド入力ではなく `start_windows.bat` のダブルクリック起動を推奨します。
-初回は `.venv` の作成、Pythonパッケージのインストール、起動前チェックを行います。
-
-FFmpeg が未インストールの場合は `install_ffmpeg_windows.bat` をダブルクリックしてください。
+PythonとFFmpegを確認し、不足していれば日本語でインストール先を案内します。揃っている場合、初回は `.venv` の作成、Pythonパッケージのインストール、起動前チェックを行います。
 
 コマンドで手動セットアップしたい場合:
 
