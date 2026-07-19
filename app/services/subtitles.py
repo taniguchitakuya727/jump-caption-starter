@@ -417,11 +417,40 @@ def split_text_into_chunks(text: str, max_chars: int) -> list[str]:
 
 
 def find_split_position(text: str, max_chars: int) -> int:
-    punctuation = "。！？、,.!? "
-    for index in range(min(max_chars, len(text) - 1), 0, -1):
-        if text[index - 1] in punctuation:
-            return index
-    return max_chars
+    if len(text) <= 1:
+        return len(text)
+
+    target = min(max_chars, len(text) - 1)
+    min_position = max(1, int(target * 0.45))
+    max_position = min(len(text) - 1, max(target + 4, int(target * 1.35)))
+    candidates = range(min_position, max_position + 1)
+    return max(candidates, key=lambda index: split_position_score(text, index, target))
+
+
+def split_position_score(text: str, index: int, target: int) -> float:
+    before = text[:index]
+    after = text[index:]
+    score = 100 - abs(index - target) * 3
+
+    if before[-1:] in "。！？.!?":
+        score += 90
+    elif before[-1:] in "、，, ":
+        score += 70
+
+    if ends_with_any(before, ("けど", "ので", "から", "ため", "そして", "それで", "ただ", "また")):
+        score += 45
+    if before[-1:] in "はがをにへでともやのねよ":
+        score += 28
+    if after[:1] in "はがをにへでともやの、。！？,.!?":
+        score -= 60
+    if len(after) <= 2:
+        score -= 40
+
+    return score
+
+
+def ends_with_any(text: str, endings: tuple[str, ...]) -> bool:
+    return any(text.endswith(ending) for ending in endings)
 
 
 def wrap_subtitle_text(text: str, max_chars_per_line: int, max_lines: int) -> str:

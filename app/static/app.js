@@ -588,13 +588,17 @@ function splitSegment() {
   pushHistory();
   const originalEnd = segment.end;
   const currentTime = videoPreview.currentTime || 0;
+  const duration = segment.end - segment.start;
   const midpoint =
     currentTime > segment.start && currentTime < segment.end
       ? Math.min(Math.max(currentTime, segment.start + 0.05), segment.end - 0.05)
       : (segment.start + segment.end) / 2;
-  const textMidpoint = Math.ceil(segment.text.length / 2);
-  const firstText = segment.text.slice(0, textMidpoint).trim();
-  const secondText = segment.text.slice(textMidpoint).trim();
+  const plainText = segment.text.replace(/\n/g, "");
+  const timeRatio = duration > 0 ? (midpoint - segment.start) / duration : 0.5;
+  const targetTextIndex = Math.round(plainText.length * timeRatio);
+  const splitAt = findNaturalSplitPosition(plainText, targetTextIndex);
+  const firstText = plainText.slice(0, splitAt).trim();
+  const secondText = plainText.slice(splitAt).trim();
   segment.end = midpoint;
   segment.text = firstText;
   subtitleSegments.splice(selectedSegmentIndex + 1, 0, {
@@ -605,6 +609,55 @@ function splitSegment() {
     suspicious: true,
   });
   markEdited();
+}
+
+function findNaturalSplitPosition(text, targetIndex) {
+  if (text.length <= 1) return text.length;
+
+  const target = Math.min(Math.max(targetIndex, 1), text.length - 1);
+  const minPosition = Math.max(1, Math.floor(target * 0.45));
+  const maxPosition = Math.min(text.length - 1, Math.max(target + 4, Math.ceil(target * 1.35)));
+  let bestIndex = target;
+  let bestScore = Number.NEGATIVE_INFINITY;
+
+  for (let index = minPosition; index <= maxPosition; index += 1) {
+    const score = splitPositionScore(text, index, target);
+    if (score > bestScore) {
+      bestScore = score;
+      bestIndex = index;
+    }
+  }
+
+  return bestIndex;
+}
+
+function splitPositionScore(text, index, target) {
+  const before = text.slice(0, index);
+  const after = text.slice(index);
+  const lastChar = before.slice(-1);
+  const nextChar = after.slice(0, 1);
+  let score = 100 - Math.abs(index - target) * 3;
+
+  if ("。！？.!?".includes(lastChar)) {
+    score += 90;
+  } else if ("、，, ".includes(lastChar)) {
+    score += 70;
+  }
+
+  if (["けど", "ので", "から", "ため", "そして", "それで", "ただ", "また"].some((ending) => before.endsWith(ending))) {
+    score += 45;
+  }
+  if ("はがをにへでともやのねよ".includes(lastChar)) {
+    score += 28;
+  }
+  if ("はがをにへでともやの、。！？,.!?".includes(nextChar)) {
+    score -= 60;
+  }
+  if (after.length <= 2) {
+    score -= 40;
+  }
+
+  return score;
 }
 
 function mergeSegment() {

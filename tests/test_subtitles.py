@@ -6,6 +6,7 @@ from app.services.subtitles import (
     SubtitleFormatSettings,
     SubtitleSegment,
     _convert_segment,
+    find_split_position,
     format_subtitle_segments,
     format_srt_time,
     save_subtitle_edit,
@@ -130,3 +131,19 @@ def test_format_subtitle_segments_merges_short_text() -> None:
 
     assert len(formatted) == 1
     assert formatted[0].text == "今日はよろしくお願いします"
+
+
+def test_find_split_position_prefers_punctuation_near_target() -> None:
+    text = "今日はジャンプカットをします。そして字幕を整えます。"
+
+    split_at = find_split_position(text, 16)
+
+    assert text[:split_at].endswith("。")
+
+
+def test_find_split_position_avoids_leaving_particle_at_next_start() -> None:
+    text = "今日は字幕の分割位置を自然に調整します"
+
+    split_at = find_split_position(text, 10)
+
+    assert text[split_at : split_at + 1] not in "はがをにへでともやの、。！？,.!?"
