@@ -19,8 +19,28 @@ const processLog = document.querySelector("#process-log");
 const processError = document.querySelector("#process-error");
 const resultLinks = document.querySelector("#result-links");
 const subtitleLinks = document.querySelector("#subtitle-links");
+const subtitleEditor = document.querySelector("#subtitle-editor");
+const videoPreview = document.querySelector("#video-preview");
+const subtitleRows = document.querySelector("#subtitle-rows");
+const saveState = document.querySelector("#save-state");
+const addSegmentButton = document.querySelector("#add-segment");
+const deleteSegmentButton = document.querySelector("#delete-segment");
+const splitSegmentButton = document.querySelector("#split-segment");
+const mergeSegmentButton = document.querySelector("#merge-segment");
+const undoButton = document.querySelector("#undo-edit");
+const redoButton = document.querySelector("#redo-edit");
+const saveSubtitlesButton = document.querySelector("#save-subtitles");
+const searchText = document.querySelector("#search-text");
+const replaceText = document.querySelector("#replace-text");
+const replaceAllButton = document.querySelector("#replace-all");
 
 let lastOutputFile = null;
+let lastSubtitleMetadataFile = null;
+let subtitleSegments = [];
+let selectedSegmentIndex = 0;
+let undoStack = [];
+let redoStack = [];
+let autosaveTimer = null;
 
 function formatBytes(bytes) {
   if (bytes === 0) return "0 B";
@@ -135,6 +155,248 @@ function showSubtitleLinks(data) {
   );
 }
 
+function cloneSegments(segments) {
+  return segments.map((segment) => ({ ...segment }));
+}
+
+function normalizeSegments(segments) {
+  return segments
+    .map((segment, index) => ({
+      index: index + 1,
+      start: Number(segment.start),
+      end: Number(segment.end),
+      text: String(segment.text || ""),
+      avg_logprob: segment.avg_logprob ?? null,
+      no_speech_prob: segment.no_speech_prob ?? null,
+      suspicious: Boolean(segment.suspicious),
+    }))
+    .sort((a, b) => a.start - b.start)
+    .map((segment, index) => ({ ...segment, index: index + 1 }));
+}
+
+function formatSeconds(seconds) {
+  return Number(seconds).toFixed(3);
+}
+
+function setSaveState(text, state = "idle") {
+  saveState.textContent = text;
+  saveState.dataset.state = state;
+}
+
+function pushHistory() {
+  undoStack.push(cloneSegments(subtitleSegments));
+  if (undoStack.length > 50) {
+    undoStack.shift();
+  }
+  redoStack = [];
+}
+
+function markEdited() {
+  subtitleSegments = normalizeSegments(subtitleSegments);
+  renderSubtitleRows();
+  setSaveState("保存待ち", "dirty");
+  window.clearTimeout(autosaveTimer);
+  autosaveTimer = window.setTimeout(saveSubtitleEdits, 1200);
+}
+
+function selectSegment(index, seek = true) {
+  selectedSegmentIndex = Math.max(0, Math.min(index, subtitleSegments.length - 1));
+  renderSubtitleRows();
+  const segment = subtitleSegments[selectedSegmentIndex];
+  if (seek && segment) {
+    videoPreview.currentTime = Math.max(0, segment.start);
+  }
+}
+
+function renderSubtitleRows() {
+  subtitleRows.innerHTML = "";
+  subtitleSegments.forEach((segment, index) => {
+    const row = document.createElement("tr");
+    row.dataset.index = String(index);
+    if (index === selectedSegmentIndex) {
+      row.classList.add("is-selected");
+    }
+    if (segment.suspicious) {
+      row.classList.add("is-suspicious");
+    }
+
+    const numberCell = document.createElement("td");
+    numberCell.textContent = String(index + 1);
+
+    const startCell = document.createElement("td");
+    const startInput = document.createElement("input");
+    startInput.type = "number";
+    startInput.step = "0.001";
+    startInput.min = "0";
+    startInput.value = formatSeconds(segment.start);
+    startInput.addEventListener("focus", () => selectSegment(index, false));
+    startInput.addEventListener("change", () => {
+      pushHistory();
+      segment.start = Number(startInput.value);
+      markEdited();
+    });
+    startCell.append(startInput);
+
+    const endCell = document.createElement("td");
+    const endInput = document.createElement("input");
+    endInput.type = "number";
+    endInput.step = "0.001";
+    endInput.min = "0";
+    endInput.value = formatSeconds(segment.end);
+    endInput.addEventListener("focus", () => selectSegment(index, false));
+    endInput.addEventListener("change", () => {
+      pushHistory();
+      segment.end = Number(endInput.value);
+      markEdited();
+    });
+    endCell.append(endInput);
+
+    const textCell = document.createElement("td");
+    const textArea = document.createElement("textarea");
+    textArea.value = segment.text;
+    textArea.rows = 2;
+    textArea.addEventListener("focus", () => selectSegment(index, false));
+    textArea.addEventListener("change", () => {
+      pushHistory();
+      segment.text = textArea.value;
+      markEdited();
+    });
+    textCell.append(textArea);
+
+    row.addEventListener("click", (event) => {
+      if (event.target === row || event.target === numberCell) {
+        selectSegment(index);
+      }
+    });
+
+    row.append(numberCell, startCell, endCell, textCell);
+    subtitleRows.append(row);
+  });
+}
+
+function openSubtitleEditor(data) {
+  lastSubtitleMetadataFile = data.metadata_file;
+  subtitleSegments = normalizeSegments(data.segments || []);
+  selectedSegmentIndex = 0;
+  undoStack = [];
+  redoStack = [];
+  videoPreview.src = `/outputs/${lastOutputFile}`;
+  subtitleEditor.hidden = false;
+  renderSubtitleRows();
+  setSaveState("保存済み", "saved");
+}
+
+async function saveSubtitleEdits() {
+  if (!lastSubtitleMetadataFile) {
+    return;
+  }
+
+  setSaveState("保存中", "saving");
+  try {
+    const response = await fetch(`/api/subtitles/${lastSubtitleMetadataFile}/save`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ segments: subtitleSegments }),
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.detail || `HTTP ${response.status}`);
+    }
+    subtitleSegments = normalizeSegments(data.segments);
+    showSubtitleLinks(data);
+    renderSubtitleRows();
+    setSaveState("保存済み", "saved");
+  } catch (error) {
+    processError.textContent = error.message;
+    processError.hidden = false;
+    setSaveState("保存失敗", "error");
+  }
+}
+
+function addSegment() {
+  pushHistory();
+  const current = subtitleSegments[selectedSegmentIndex];
+  const start = current ? current.end : 0;
+  subtitleSegments.splice(selectedSegmentIndex + 1, 0, {
+    index: selectedSegmentIndex + 2,
+    start,
+    end: start + 2,
+    text: "",
+    avg_logprob: null,
+    no_speech_prob: null,
+    suspicious: true,
+  });
+  selectedSegmentIndex += 1;
+  markEdited();
+}
+
+function deleteSegment() {
+  if (!subtitleSegments.length) return;
+  pushHistory();
+  subtitleSegments.splice(selectedSegmentIndex, 1);
+  selectedSegmentIndex = Math.max(0, selectedSegmentIndex - 1);
+  markEdited();
+}
+
+function splitSegment() {
+  const segment = subtitleSegments[selectedSegmentIndex];
+  if (!segment) return;
+  pushHistory();
+  const originalEnd = segment.end;
+  const midpoint = (segment.start + segment.end) / 2;
+  const textMidpoint = Math.ceil(segment.text.length / 2);
+  const firstText = segment.text.slice(0, textMidpoint).trim();
+  const secondText = segment.text.slice(textMidpoint).trim();
+  segment.end = midpoint;
+  segment.text = firstText;
+  subtitleSegments.splice(selectedSegmentIndex + 1, 0, {
+    ...segment,
+    start: midpoint,
+    end: originalEnd,
+    text: secondText,
+    suspicious: true,
+  });
+  markEdited();
+}
+
+function mergeSegment() {
+  const segment = subtitleSegments[selectedSegmentIndex];
+  const nextSegment = subtitleSegments[selectedSegmentIndex + 1];
+  if (!segment || !nextSegment) return;
+  pushHistory();
+  segment.end = nextSegment.end;
+  segment.text = `${segment.text}${segment.text && nextSegment.text ? "\n" : ""}${nextSegment.text}`;
+  segment.suspicious = segment.suspicious || nextSegment.suspicious;
+  subtitleSegments.splice(selectedSegmentIndex + 1, 1);
+  markEdited();
+}
+
+function undoEdit() {
+  if (!undoStack.length) return;
+  redoStack.push(cloneSegments(subtitleSegments));
+  subtitleSegments = undoStack.pop();
+  markEdited();
+}
+
+function redoEdit() {
+  if (!redoStack.length) return;
+  undoStack.push(cloneSegments(subtitleSegments));
+  subtitleSegments = redoStack.pop();
+  markEdited();
+}
+
+function replaceAllText() {
+  const needle = searchText.value;
+  if (!needle) return;
+  pushHistory();
+  const replacement = replaceText.value;
+  subtitleSegments = subtitleSegments.map((segment) => ({
+    ...segment,
+    text: segment.text.split(needle).join(replacement),
+  }));
+  markEdited();
+}
+
 async function processVideo(event) {
   event.preventDefault();
 
@@ -220,6 +482,7 @@ async function generateSubtitles(event) {
     }
 
     showSubtitleLinks(data);
+    openSubtitleEditor(data);
     const suspiciousCount = data.segments.filter((segment) => segment.suspicious).length;
     const summary = [
       `subtitle segments: ${data.segments.length}`,
@@ -242,6 +505,14 @@ refreshButton.addEventListener("click", loadFFmpegStatus);
 refreshWhisperButton.addEventListener("click", loadWhisperStatus);
 jumpCutForm.addEventListener("submit", processVideo);
 subtitleForm.addEventListener("submit", generateSubtitles);
+addSegmentButton.addEventListener("click", addSegment);
+deleteSegmentButton.addEventListener("click", deleteSegment);
+splitSegmentButton.addEventListener("click", splitSegment);
+mergeSegmentButton.addEventListener("click", mergeSegment);
+undoButton.addEventListener("click", undoEdit);
+redoButton.addEventListener("click", redoEdit);
+saveSubtitlesButton.addEventListener("click", saveSubtitleEdits);
+replaceAllButton.addEventListener("click", replaceAllText);
 
 loadFFmpegStatus();
 loadWhisperStatus();

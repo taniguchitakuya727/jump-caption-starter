@@ -26,8 +26,9 @@ def test_homepage_contains_file_picker() -> None:
     assert response.status_code == 200
     assert "Jump Caption" in response.text
     assert 'type="file"' in response.text
-    assert "/static/app.js?v=sprint2" in response.text
-    assert "/static/style.css?v=sprint2" in response.text
+    assert "/static/app.js?v=sprint3" in response.text
+    assert "/static/style.css?v=sprint3" in response.text
+    assert "字幕エディタ" in response.text
 
 
 def test_jump_cut_endpoint_returns_output_links(monkeypatch, tmp_path) -> None:
@@ -119,3 +120,49 @@ def test_subtitles_endpoint_returns_output_links(monkeypatch, tmp_path) -> None:
     assert response.json()["srt_url"] == "/outputs/sample_cut.srt"
     assert response.json()["txt_url"] == "/outputs/sample_cut.txt"
     assert response.json()["metadata_url"] == "/outputs/sample_cut_subtitles.json"
+
+
+def test_get_subtitle_metadata(monkeypatch, tmp_path) -> None:
+    metadata_path = tmp_path / "sample_cut_subtitles.json"
+    metadata_path.write_text(
+        '{"source":"sample_cut.mp4","segments":[],"logs":[]}',
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(main, "OUTPUT_DIR", tmp_path)
+
+    response = client.get("/api/subtitles/sample_cut_subtitles.json")
+
+    assert response.status_code == 200
+    assert response.json()["video_url"] == "/outputs/sample_cut.mp4"
+    assert response.json()["metadata_file"] == "sample_cut_subtitles.json"
+
+
+def test_save_subtitles_endpoint_rewrites_srt(monkeypatch, tmp_path) -> None:
+    metadata_path = tmp_path / "sample_cut_subtitles.json"
+    metadata_path.write_text(
+        '{"source":"sample_cut.mp4","segments":[],"logs":["generated"]}',
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(main, "OUTPUT_DIR", tmp_path)
+
+    response = client.post(
+        "/api/subtitles/sample_cut_subtitles.json/save",
+        json={
+            "segments": [
+                {
+                    "start": 0,
+                    "end": 1,
+                    "text": "保存テスト",
+                    "avg_logprob": None,
+                    "no_speech_prob": None,
+                    "suspicious": False,
+                }
+            ]
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json()["srt_url"] == "/outputs/sample_cut.srt"
+    assert (tmp_path / "sample_cut.srt").read_text(encoding="utf-8") == (
+        "1\n00:00:00,000 --> 00:00:01,000\n保存テスト\n"
+    )

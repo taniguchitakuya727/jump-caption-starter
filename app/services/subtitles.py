@@ -10,6 +10,10 @@ class SubtitleGenerationError(RuntimeError):
     pass
 
 
+class SubtitleEditError(RuntimeError):
+    pass
+
+
 @dataclass(frozen=True)
 class SubtitleSegment:
     index: int
@@ -164,6 +168,85 @@ def to_txt(segments: list[SubtitleSegment]) -> str:
     return "\n".join(segment.text for segment in segments if segment.text) + (
         "\n" if segments else ""
     )
+
+
+def load_subtitle_metadata(metadata_path: Path) -> dict[str, object]:
+    try:
+        return json.loads(metadata_path.read_text(encoding="utf-8"))
+    except FileNotFoundError as exc:
+        raise SubtitleEditError("字幕メタデータが見つかりません。") from exc
+    except json.JSONDecodeError as exc:
+        raise SubtitleEditError("字幕メタデータJSONを読み取れません。") from exc
+
+
+def segments_from_payload(payload_segments: list[dict[str, object]]) -> list[SubtitleSegment]:
+    segments: list[SubtitleSegment] = []
+    for index, raw_segment in enumerate(payload_segments, start=1):
+        try:
+            start = float(raw_segment["start"])
+            end = float(raw_segment["end"])
+            text = str(raw_segment.get("text", "")).strip()
+        except (KeyError, TypeError, ValueError) as exc:
+            raise SubtitleEditError("字幕セグメントの形式が不正です。") from exc
+
+        if start < 0 or end <= start:
+            raise SubtitleEditError("字幕の開始・終了時刻が不正です。")
+
+        segments.append(
+            SubtitleSegment(
+                index=index,
+                start=start,
+                end=end,
+                text=text,
+                avg_logprob=_optional_float(raw_segment.get("avg_logprob")),
+                no_speech_prob=_optional_float(raw_segment.get("no_speech_prob")),
+                suspicious=bool(raw_segment.get("suspicious", False)),
+            )
+        )
+
+    return segments
+
+
+def save_subtitle_edit(
+    metadata_path: Path,
+    output_dir: Path,
+    payload_segments: list[dict[str, object]],
+) -> SubtitleResult:
+    metadata = load_subtitle_metadata(metadata_path)
+    segments = segments_from_payload(payload_segments)
+    source_name = str(metadata.get("source") or metadata_path.name.replace("_subtitles.json", ".mp4"))
+    source_stem = Path(source_name).stem
+
+    srt_path = output_dir / f"{source_stem}.srt"
+    txt_path = output_dir / f"{source_stem}.txt"
+    logs = [*list(metadata.get("logs", [])), "edited subtitles saved"]
+
+    srt_path.write_text(to_srt(segments), encoding="utf-8")
+    txt_path.write_text(to_txt(segments), encoding="utf-8")
+
+    metadata["segments"] = [segment.to_dict() for segment in segments]
+    metadata["logs"] = logs
+    metadata_path.write_text(
+        json.dumps(metadata, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+
+    return SubtitleResult(
+        srt_path=srt_path,
+        txt_path=txt_path,
+        metadata_path=metadata_path,
+        segments=segments,
+        logs=logs,
+    )
+
+
+def _optional_float(value: object) -> float | None:
+    if value is None:
+        return None
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
 
 
 def write_metadata(

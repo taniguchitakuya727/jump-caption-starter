@@ -10,10 +10,13 @@ from fastapi.staticfiles import StaticFiles
 
 from app.services.ffmpeg import detect_ffmpeg
 from app.services.subtitles import (
+    SubtitleEditError,
     SubtitleGenerationError,
     SubtitleSettings,
     faster_whisper_available,
     generate_subtitles,
+    load_subtitle_metadata,
+    save_subtitle_edit,
 )
 from app.services.video_processing import (
     JumpCutSettings,
@@ -130,6 +133,56 @@ def subtitles(
             ),
         )
     except SubtitleGenerationError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    return {
+        "srt_file": result.srt_path.name,
+        "srt_url": f"/outputs/{result.srt_path.name}",
+        "txt_file": result.txt_path.name,
+        "txt_url": f"/outputs/{result.txt_path.name}",
+        "metadata_file": result.metadata_path.name,
+        "metadata_url": f"/outputs/{result.metadata_path.name}",
+        "segments": [segment.to_dict() for segment in result.segments],
+        "logs": result.logs,
+    }
+
+
+@app.get("/api/subtitles/{filename}")
+def get_subtitle_metadata(filename: str) -> dict[str, object]:
+    metadata_path = safe_output_path(filename)
+    if not metadata_path.is_file():
+        raise HTTPException(status_code=404, detail="字幕メタデータが見つかりません。")
+
+    try:
+        metadata = load_subtitle_metadata(metadata_path)
+    except SubtitleEditError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    source = str(metadata.get("source", ""))
+    return {
+        **metadata,
+        "video_url": f"/outputs/{source}" if source else None,
+        "metadata_file": metadata_path.name,
+    }
+
+
+@app.post("/api/subtitles/{filename}/save")
+def save_subtitles(filename: str, payload: dict[str, object]) -> dict[str, object]:
+    metadata_path = safe_output_path(filename)
+    if not metadata_path.is_file():
+        raise HTTPException(status_code=404, detail="字幕メタデータが見つかりません。")
+
+    raw_segments = payload.get("segments")
+    if not isinstance(raw_segments, list):
+        raise HTTPException(status_code=400, detail="字幕セグメントがありません。")
+
+    try:
+        result = save_subtitle_edit(
+            metadata_path=metadata_path,
+            output_dir=OUTPUT_DIR,
+            payload_segments=raw_segments,
+        )
+    except SubtitleEditError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     return {
