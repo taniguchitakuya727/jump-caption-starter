@@ -196,6 +196,10 @@ function markEdited() {
   subtitleSegments = normalizeSegments(subtitleSegments);
   renderSubtitleRows();
   updateCaptionOverlay();
+  scheduleAutosave();
+}
+
+function scheduleAutosave() {
   setSaveState("保存待ち", "dirty");
   window.clearTimeout(autosaveTimer);
   autosaveTimer = window.setTimeout(saveSubtitleEdits, 1200);
@@ -203,7 +207,7 @@ function markEdited() {
 
 function selectSegment(index, seek = true) {
   selectedSegmentIndex = Math.max(0, Math.min(index, subtitleSegments.length - 1));
-  renderSubtitleRows();
+  refreshSubtitleRowState();
   const segment = subtitleSegments[selectedSegmentIndex];
   if (seek && segment) {
     videoPreview.currentTime = Math.max(0, segment.start);
@@ -229,8 +233,15 @@ function updateCaptionOverlay() {
 
   if (activeIndex !== -1 && activeIndex !== selectedSegmentIndex) {
     selectedSegmentIndex = activeIndex;
-    renderSubtitleRows();
+    refreshSubtitleRowState();
   }
+}
+
+function refreshSubtitleRowState() {
+  subtitleRows.querySelectorAll("tr").forEach((row, index) => {
+    row.classList.toggle("is-selected", index === selectedSegmentIndex);
+    row.classList.toggle("is-suspicious", Boolean(subtitleSegments[index]?.suspicious));
+  });
 }
 
 function renderSubtitleRows() {
@@ -281,10 +292,17 @@ function renderSubtitleRows() {
     textArea.value = segment.text;
     textArea.rows = 2;
     textArea.addEventListener("focus", () => selectSegment(index, false));
+    textArea.addEventListener("input", () => {
+      segment.text = textArea.value;
+      updateCaptionOverlay();
+      scheduleAutosave();
+    });
     textArea.addEventListener("change", () => {
       pushHistory();
       segment.text = textArea.value;
-      markEdited();
+      subtitleSegments = normalizeSegments(subtitleSegments);
+      refreshSubtitleRowState();
+      updateCaptionOverlay();
     });
     textCell.append(textArea);
 
