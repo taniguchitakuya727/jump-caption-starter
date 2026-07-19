@@ -32,6 +32,10 @@ const mergeSegmentButton = document.querySelector("#merge-segment");
 const undoButton = document.querySelector("#undo-edit");
 const redoButton = document.querySelector("#redo-edit");
 const saveSubtitlesButton = document.querySelector("#save-subtitles");
+const formatSubtitlesButton = document.querySelector("#format-subtitles");
+const formatMaxChars = document.querySelector("#format-max-chars");
+const formatMinDuration = document.querySelector("#format-min-duration");
+const formatMaxDuration = document.querySelector("#format-max-duration");
 const searchText = document.querySelector("#search-text");
 const replaceText = document.querySelector("#replace-text");
 const replaceAllButton = document.querySelector("#replace-all");
@@ -502,6 +506,57 @@ async function saveSubtitleEdits() {
   }
 }
 
+async function formatSubtitleEdits() {
+  if (!lastSubtitleMetadataFile) {
+    processError.textContent = "字幕メタデータがありません。";
+    processError.hidden = false;
+    return;
+  }
+
+  window.clearTimeout(autosaveTimer);
+  processError.hidden = true;
+  processLog.textContent = "字幕を整形中です。";
+  setSaveState("整形中", "saving");
+
+  try {
+    await saveSubtitleEdits();
+    const response = await fetch(`/api/subtitles/${lastSubtitleMetadataFile}/format`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        max_chars_per_line: Number(formatMaxChars.value),
+        max_lines: 2,
+        min_duration: Number(formatMinDuration.value),
+        max_duration: Number(formatMaxDuration.value),
+      }),
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.detail || `HTTP ${response.status}`);
+    }
+
+    pushHistory();
+    subtitleSegments = normalizeSegments(data.segments);
+    selectedSegmentIndex = Math.min(selectedSegmentIndex, subtitleSegments.length - 1);
+    showSubtitleLinks(data);
+    renderSubtitleRows();
+    updateCaptionOverlay();
+    setSaveState("保存済み", "saved");
+    const suspiciousCount = data.segments.filter((segment) => segment.suspicious).length;
+    processLog.textContent = [
+      `formatted segments: ${data.segments.length}`,
+      `suspicious segments: ${suspiciousCount}`,
+      "",
+      ...data.logs,
+    ].join("\n");
+  } catch (error) {
+    processError.textContent = error.message;
+    processError.hidden = false;
+    processLog.textContent = "字幕整形に失敗しました。";
+    setSaveState("保存失敗", "error");
+  }
+}
+
 function addSegment() {
   pushHistory();
   const current = subtitleSegments[selectedSegmentIndex];
@@ -704,6 +759,7 @@ mergeSegmentButton.addEventListener("click", mergeSegment);
 undoButton.addEventListener("click", undoEdit);
 redoButton.addEventListener("click", redoEdit);
 saveSubtitlesButton.addEventListener("click", saveSubtitleEdits);
+formatSubtitlesButton.addEventListener("click", formatSubtitleEdits);
 replaceAllButton.addEventListener("click", replaceAllText);
 videoPreview.addEventListener("timeupdate", updateCaptionOverlay);
 videoPreview.addEventListener("seeked", updateCaptionOverlay);

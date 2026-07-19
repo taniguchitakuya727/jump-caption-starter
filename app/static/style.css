@@ -436,7 +436,8 @@ pre {
 }
 
 .editor-actions,
-.replace-row {
+.replace-row,
+.format-row {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
@@ -451,6 +452,21 @@ pre {
 .replace-row input {
   min-width: 120px;
   flex: 1 1 140px;
+  min-height: 36px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 7px 9px;
+}
+
+.format-row label {
+  display: grid;
+  gap: 4px;
+  min-width: 88px;
+  color: var(--muted);
+  font-size: 0.84rem;
+}
+
+.format-row input {
   min-height: 36px;
   border: 1px solid var(--line);
   border-radius: 6px;

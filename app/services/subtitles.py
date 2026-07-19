@@ -49,6 +49,24 @@ class SubtitleResult:
     logs: list[str]
 
 
+@dataclass(frozen=True)
+class SubtitleFormatSettings:
+    max_chars_per_line: int = 18
+    max_lines: int = 2
+    min_duration: float = 0.8
+    max_duration: float = 5.5
+
+    def validate(self) -> None:
+        if self.max_chars_per_line <= 0:
+            raise SubtitleEditError("1行の最大文字数は 1 以上にしてください。")
+        if self.max_lines <= 0:
+            raise SubtitleEditError("最大行数は 1 以上にしてください。")
+        if self.min_duration <= 0 or self.max_duration <= 0:
+            raise SubtitleEditError("字幕の表示時間は 0 より大きくしてください。")
+        if self.min_duration > self.max_duration:
+            raise SubtitleEditError("最短表示時間は最長表示時間以下にしてください。")
+
+
 def faster_whisper_available() -> bool:
     try:
         import faster_whisper  # noqa: F401
@@ -238,6 +256,205 @@ def save_subtitle_edit(
         segments=segments,
         logs=logs,
     )
+
+
+def format_subtitle_metadata(
+    metadata_path: Path,
+    output_dir: Path,
+    settings: SubtitleFormatSettings,
+) -> SubtitleResult:
+    settings.validate()
+    metadata = load_subtitle_metadata(metadata_path)
+    raw_segments = metadata.get("segments", [])
+    if not isinstance(raw_segments, list):
+        raise SubtitleEditError("字幕セグメントがありません。")
+
+    segments = segments_from_payload(raw_segments)
+    formatted_segments = format_subtitle_segments(segments, settings)
+    payload_segments = [segment.to_dict() for segment in formatted_segments]
+    result = save_subtitle_edit(metadata_path, output_dir, payload_segments)
+
+    updated_metadata = load_subtitle_metadata(metadata_path)
+    logs = [*list(updated_metadata.get("logs", [])), "formatted subtitles"]
+    updated_metadata["logs"] = logs
+    updated_metadata["format_settings"] = asdict(settings)
+    metadata_path.write_text(
+        json.dumps(updated_metadata, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+
+    return SubtitleResult(
+        srt_path=result.srt_path,
+        txt_path=result.txt_path,
+        metadata_path=result.metadata_path,
+        segments=result.segments,
+        logs=logs,
+    )
+
+
+def format_subtitle_segments(
+    segments: list[SubtitleSegment],
+    settings: SubtitleFormatSettings,
+) -> list[SubtitleSegment]:
+    merged = merge_short_segments(segments, settings)
+    split_segments: list[SubtitleSegment] = []
+    max_chars = settings.max_chars_per_line * settings.max_lines
+
+    for segment in merged:
+        plain_text = segment.text.replace("\n", "")
+        if len(plain_text) > max_chars or segment.end - segment.start > settings.max_duration:
+            split_segments.extend(split_long_segment(segment, settings))
+        else:
+            split_segments.append(segment)
+
+    return [
+        SubtitleSegment(
+            index=index,
+            start=segment.start,
+            end=segment.end,
+            text=wrap_subtitle_text(segment.text, settings.max_chars_per_line, settings.max_lines),
+            avg_logprob=segment.avg_logprob,
+            no_speech_prob=segment.no_speech_prob,
+            suspicious=segment.suspicious,
+        )
+        for index, segment in enumerate(split_segments, start=1)
+    ]
+
+
+def merge_short_segments(
+    segments: list[SubtitleSegment],
+    settings: SubtitleFormatSettings,
+) -> list[SubtitleSegment]:
+    merged: list[SubtitleSegment] = []
+    index = 0
+    max_chars = settings.max_chars_per_line * settings.max_lines
+
+    while index < len(segments):
+        current = segments[index]
+        current_text = current.text.replace("\n", "")
+        should_merge = (
+            index + 1 < len(segments)
+            and current.end - current.start < settings.min_duration
+            and len(current_text) < max_chars
+        )
+        if should_merge:
+            next_segment = segments[index + 1]
+            merged_text = join_subtitle_text(current.text, next_segment.text)
+            if len(merged_text.replace("\n", "")) <= max_chars:
+                merged.append(
+                    SubtitleSegment(
+                        index=len(merged) + 1,
+                        start=current.start,
+                        end=next_segment.end,
+                        text=merged_text,
+                        avg_logprob=current.avg_logprob,
+                        no_speech_prob=max_optional(
+                            current.no_speech_prob,
+                            next_segment.no_speech_prob,
+                        ),
+                        suspicious=current.suspicious or next_segment.suspicious,
+                    )
+                )
+                index += 2
+                continue
+
+        merged.append(current)
+        index += 1
+
+    return merged
+
+
+def split_long_segment(
+    segment: SubtitleSegment,
+    settings: SubtitleFormatSettings,
+) -> list[SubtitleSegment]:
+    plain_text = segment.text.replace("\n", "")
+    max_chars = settings.max_chars_per_line * settings.max_lines
+    chunks = split_text_into_chunks(plain_text, max_chars)
+    if len(chunks) <= 1:
+        return [segment]
+
+    duration = segment.end - segment.start
+    total_chars = sum(max(1, len(chunk)) for chunk in chunks)
+    cursor = segment.start
+    split_segments: list[SubtitleSegment] = []
+
+    for index, chunk in enumerate(chunks):
+        if index == len(chunks) - 1:
+            end = segment.end
+        else:
+            ratio = max(1, len(chunk)) / total_chars
+            end = min(segment.end, cursor + duration * ratio)
+        split_segments.append(
+            SubtitleSegment(
+                index=index + 1,
+                start=cursor,
+                end=end,
+                text=chunk,
+                avg_logprob=segment.avg_logprob,
+                no_speech_prob=segment.no_speech_prob,
+                suspicious=True,
+            )
+        )
+        cursor = end
+
+    return [item for item in split_segments if item.end > item.start]
+
+
+def split_text_into_chunks(text: str, max_chars: int) -> list[str]:
+    if len(text) <= max_chars:
+        return [text]
+
+    chunks: list[str] = []
+    remaining = text
+    while len(remaining) > max_chars:
+        split_at = find_split_position(remaining, max_chars)
+        chunks.append(remaining[:split_at].strip())
+        remaining = remaining[split_at:].strip()
+    if remaining:
+        chunks.append(remaining)
+    return chunks
+
+
+def find_split_position(text: str, max_chars: int) -> int:
+    punctuation = "。！？、,.!? "
+    for index in range(min(max_chars, len(text) - 1), 0, -1):
+        if text[index - 1] in punctuation:
+            return index
+    return max_chars
+
+
+def wrap_subtitle_text(text: str, max_chars_per_line: int, max_lines: int) -> str:
+    plain_text = text.replace("\n", "").strip()
+    if len(plain_text) <= max_chars_per_line:
+        return plain_text
+
+    lines: list[str] = []
+    remaining = plain_text
+    while remaining and len(lines) < max_lines:
+        if len(lines) == max_lines - 1:
+            lines.append(remaining)
+            break
+        split_at = find_split_position(remaining, max_chars_per_line)
+        lines.append(remaining[:split_at].strip())
+        remaining = remaining[split_at:].strip()
+
+    return "\n".join(line for line in lines if line)
+
+
+def join_subtitle_text(left: str, right: str) -> str:
+    left_text = left.replace("\n", "").strip()
+    right_text = right.replace("\n", "").strip()
+    if not left_text:
+        return right_text
+    if not right_text:
+        return left_text
+    return f"{left_text}{right_text}"
+
+
+def max_optional(left: float | None, right: float | None) -> float | None:
+    values = [value for value in [left, right] if value is not None]
+    return max(values) if values else None
 
 
 def _optional_float(value: object) -> float | None:

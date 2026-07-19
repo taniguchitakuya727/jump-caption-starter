@@ -2,7 +2,7 @@
 
 Jump Caption は、Mac / Windows の両方で動くローカルWebアプリとして開発する動画編集補助ツールです。
 
-Sprint 3 では、FastAPI のローカルサーバー、動画ファイル選択UI、FFmpeg検出API、無音検出、ジャンプカット済みMP4出力、無音区間JSON保存、faster-whisper によるローカル字幕生成、ブラウザ上の字幕エディタを実装しています。
+Sprint 4 では、FastAPI のローカルサーバー、動画ファイル選択UI、FFmpeg検出API、無音検出、ジャンプカット済みMP4出力、無音区間JSON保存、faster-whisper によるローカル字幕生成、ブラウザ上の字幕エディタ、ローカル字幕整形を実装しています。
 
 ## Requirements
 
@@ -95,6 +95,7 @@ pytest
 - 編集後の SRT / TXT / 字幕メタデータJSONを再出力する
 - `outputs/` に残っているカット済みMP4から字幕生成を再開できる
 - `outputs/` に残っている字幕メタデータJSONから字幕エディタを直接開ける
+- 字幕の長さ、改行、短すぎる字幕の結合、長すぎる字幕の分割をローカルで整形できる
 
 ## Assumptions
 
@@ -106,4 +107,5 @@ pytest
 - faster-whisper の詳細な認識確信度はモデル出力に依存するため、Sprint 2 では `avg_logprob` と `no_speech_prob` を保存し、怪しい区間のフラグに使います。
 - Sprint 3 の自動保存は、字幕編集後に短い待ち時間を置いてローカルの `outputs/` 内ファイルへ反映します。
 - 途中再開の字幕エディタは、このアプリが生成した `<original>_subtitles.json` を対象にしています。
+- Sprint 4 の字幕整形は外部AI APIを使わず、ローカルのルールベース処理として実装しています。本文の要約や言い換えはしません。
 - Windows対応を妨げないよう、OS固有のパス区切りやシェル前提の処理はアプリ本体に入れていません。

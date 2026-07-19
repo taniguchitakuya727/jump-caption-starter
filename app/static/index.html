@@ -4,8 +4,8 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Jump Caption</title>
-    <link rel="stylesheet" href="/static/style.css?v=sprint3-selection-fix" />
-    <script src="/static/app.js?v=sprint3-selection-fix" defer></script>
+    <link rel="stylesheet" href="/static/style.css?v=sprint4-format" />
+    <script src="/static/app.js?v=sprint4-format" defer></script>
   </head>
   <body>
     <main class="app-shell">
@@ -183,6 +183,21 @@
                 <button id="undo-edit" type="button">Undo</button>
                 <button id="redo-edit" type="button">Redo</button>
                 <button id="save-subtitles" type="button">保存</button>
+                <button id="format-subtitles" type="button">字幕整形</button>
+              </div>
+              <div class="format-row">
+                <label>
+                  <span>1行</span>
+                  <input id="format-max-chars" type="number" value="18" min="8" max="40" />
+                </label>
+                <label>
+                  <span>最短</span>
+                  <input id="format-min-duration" type="number" value="0.8" min="0.2" step="0.1" />
+                </label>
+                <label>
+                  <span>最長</span>
+                  <input id="format-max-duration" type="number" value="5.5" min="1" step="0.5" />
+                </label>
               </div>
               <div class="replace-row">
                 <input id="search-text" type="search" placeholder="検索" />

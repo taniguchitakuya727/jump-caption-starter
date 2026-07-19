@@ -3,8 +3,10 @@ from __future__ import annotations
 from types import SimpleNamespace
 
 from app.services.subtitles import (
+    SubtitleFormatSettings,
     SubtitleSegment,
     _convert_segment,
+    format_subtitle_segments,
     format_srt_time,
     save_subtitle_edit,
     to_srt,
@@ -90,3 +92,41 @@ def test_save_subtitle_edit_rewrites_outputs(tmp_path) -> None:
     )
     assert result.txt_path.read_text(encoding="utf-8") == "編集済み\n"
     assert result.segments[0].index == 1
+
+
+def test_format_subtitle_segments_wraps_and_splits_long_text() -> None:
+    segments = [
+        SubtitleSegment(
+            index=1,
+            start=0,
+            end=6,
+            text="今日はジャンプカットと字幕編集の基本的な流れを確認します。",
+            avg_logprob=None,
+            no_speech_prob=None,
+            suspicious=False,
+        )
+    ]
+
+    formatted = format_subtitle_segments(
+        segments,
+        SubtitleFormatSettings(max_chars_per_line=10, max_lines=2, max_duration=3),
+    )
+
+    assert len(formatted) > 1
+    assert all(len(line) <= 20 for segment in formatted for line in segment.text.splitlines())
+    assert formatted[0].suspicious is True
+
+
+def test_format_subtitle_segments_merges_short_text() -> None:
+    segments = [
+        SubtitleSegment(1, 0, 0.4, "今日は", None, None, False),
+        SubtitleSegment(2, 0.4, 1.4, "よろしくお願いします", None, None, False),
+    ]
+
+    formatted = format_subtitle_segments(
+        segments,
+        SubtitleFormatSettings(max_chars_per_line=18, max_lines=2, min_duration=0.8),
+    )
+
+    assert len(formatted) == 1
+    assert formatted[0].text == "今日はよろしくお願いします"

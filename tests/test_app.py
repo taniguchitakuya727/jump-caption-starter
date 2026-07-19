@@ -26,8 +26,8 @@ def test_homepage_contains_file_picker() -> None:
     assert response.status_code == 200
     assert "Jump Caption" in response.text
     assert 'type="file"' in response.text
-    assert "/static/app.js?v=sprint3-selection-fix" in response.text
-    assert "/static/style.css?v=sprint3-selection-fix" in response.text
+    assert "/static/app.js?v=sprint4-format" in response.text
+    assert "/static/style.css?v=sprint4-format" in response.text
     assert "字幕エディタ" in response.text
     assert "caption-overlay" in response.text
     assert "続きから" in response.text
@@ -186,3 +186,36 @@ def test_save_subtitles_endpoint_rewrites_srt(monkeypatch, tmp_path) -> None:
     assert (tmp_path / "sample_cut.srt").read_text(encoding="utf-8") == (
         "1\n00:00:00,000 --> 00:00:01,000\n保存テスト\n"
     )
+
+
+def test_format_subtitles_endpoint(monkeypatch, tmp_path) -> None:
+    metadata_path = tmp_path / "sample_cut_subtitles.json"
+    metadata_path.write_text(
+        """
+        {
+          "source": "sample_cut.mp4",
+          "segments": [
+            {
+              "start": 0,
+              "end": 6,
+              "text": "今日はジャンプカットと字幕編集の基本的な流れを確認します。",
+              "avg_logprob": null,
+              "no_speech_prob": null,
+              "suspicious": false
+            }
+          ],
+          "logs": []
+        }
+        """,
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(main, "OUTPUT_DIR", tmp_path)
+
+    response = client.post(
+        "/api/subtitles/sample_cut_subtitles.json/format",
+        json={"max_chars_per_line": 10, "max_lines": 2, "max_duration": 3},
+    )
+
+    assert response.status_code == 200
+    assert len(response.json()["segments"]) > 1
+    assert response.json()["metadata_url"] == "/outputs/sample_cut_subtitles.json"

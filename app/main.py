@@ -11,9 +11,11 @@ from fastapi.staticfiles import StaticFiles
 from app.services.ffmpeg import detect_ffmpeg
 from app.services.subtitles import (
     SubtitleEditError,
+    SubtitleFormatSettings,
     SubtitleGenerationError,
     SubtitleSettings,
     faster_whisper_available,
+    format_subtitle_metadata,
     generate_subtitles,
     load_subtitle_metadata,
     save_subtitle_edit,
@@ -222,6 +224,38 @@ def save_subtitles(filename: str, payload: dict[str, object]) -> dict[str, objec
             payload_segments=raw_segments,
         )
     except SubtitleEditError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    return {
+        "srt_file": result.srt_path.name,
+        "srt_url": f"/outputs/{result.srt_path.name}",
+        "txt_file": result.txt_path.name,
+        "txt_url": f"/outputs/{result.txt_path.name}",
+        "metadata_file": result.metadata_path.name,
+        "metadata_url": f"/outputs/{result.metadata_path.name}",
+        "segments": [segment.to_dict() for segment in result.segments],
+        "logs": result.logs,
+    }
+
+
+@app.post("/api/subtitles/{filename}/format")
+def format_subtitles(filename: str, payload: dict[str, object]) -> dict[str, object]:
+    metadata_path = safe_output_path(filename)
+    if not metadata_path.is_file():
+        raise HTTPException(status_code=404, detail="字幕メタデータが見つかりません。")
+
+    try:
+        result = format_subtitle_metadata(
+            metadata_path=metadata_path,
+            output_dir=OUTPUT_DIR,
+            settings=SubtitleFormatSettings(
+                max_chars_per_line=int(payload.get("max_chars_per_line", 18)),
+                max_lines=int(payload.get("max_lines", 2)),
+                min_duration=float(payload.get("min_duration", 0.8)),
+                max_duration=float(payload.get("max_duration", 5.5)),
+            ),
+        )
+    except (SubtitleEditError, TypeError, ValueError) as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     return {
