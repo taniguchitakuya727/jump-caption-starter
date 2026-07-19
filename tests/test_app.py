@@ -26,9 +26,10 @@ def test_homepage_contains_file_picker() -> None:
     assert response.status_code == 200
     assert "Jump Caption" in response.text
     assert 'type="file"' in response.text
-    assert "/static/app.js?v=sprint3" in response.text
-    assert "/static/style.css?v=sprint3" in response.text
+    assert "/static/app.js?v=sprint3-caption-preview" in response.text
+    assert "/static/style.css?v=sprint3-caption-preview" in response.text
     assert "字幕エディタ" in response.text
+    assert "caption-overlay" in response.text
 
 
 def test_jump_cut_endpoint_returns_output_links(monkeypatch, tmp_path) -> None:

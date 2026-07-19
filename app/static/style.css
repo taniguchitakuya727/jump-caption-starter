@@ -336,11 +336,39 @@ pre {
   gap: 14px;
 }
 
-#video-preview {
+.video-preview-wrap {
+  position: relative;
   width: 100%;
   aspect-ratio: 16 / 9;
+  overflow: hidden;
   border-radius: 8px;
   background: #111820;
+}
+
+#video-preview {
+  width: 100%;
+  height: 100%;
+  background: #111820;
+}
+
+.caption-overlay {
+  position: absolute;
+  left: 5%;
+  right: 5%;
+  bottom: 9%;
+  z-index: 2;
+  max-height: 42%;
+  overflow: hidden;
+  color: #ffffff;
+  font-size: clamp(1rem, 3vw, 1.65rem);
+  font-weight: 800;
+  line-height: 1.35;
+  text-align: center;
+  text-shadow:
+    0 2px 4px rgb(0 0 0 / 92%),
+    0 0 2px rgb(0 0 0 / 100%);
+  white-space: pre-wrap;
+  pointer-events: none;
 }
 
 .editor-actions,

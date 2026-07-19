@@ -21,6 +21,7 @@ const resultLinks = document.querySelector("#result-links");
 const subtitleLinks = document.querySelector("#subtitle-links");
 const subtitleEditor = document.querySelector("#subtitle-editor");
 const videoPreview = document.querySelector("#video-preview");
+const captionOverlay = document.querySelector("#caption-overlay");
 const subtitleRows = document.querySelector("#subtitle-rows");
 const saveState = document.querySelector("#save-state");
 const addSegmentButton = document.querySelector("#add-segment");
@@ -194,6 +195,7 @@ function pushHistory() {
 function markEdited() {
   subtitleSegments = normalizeSegments(subtitleSegments);
   renderSubtitleRows();
+  updateCaptionOverlay();
   setSaveState("保存待ち", "dirty");
   window.clearTimeout(autosaveTimer);
   autosaveTimer = window.setTimeout(saveSubtitleEdits, 1200);
@@ -205,6 +207,29 @@ function selectSegment(index, seek = true) {
   const segment = subtitleSegments[selectedSegmentIndex];
   if (seek && segment) {
     videoPreview.currentTime = Math.max(0, segment.start);
+  }
+  updateCaptionOverlay();
+}
+
+function updateCaptionOverlay() {
+  const currentTime = videoPreview.currentTime || 0;
+  const activeIndex = subtitleSegments.findIndex(
+    (segment) => currentTime >= segment.start && currentTime <= segment.end,
+  );
+  const activeSegment = subtitleSegments[activeIndex];
+
+  if (!activeSegment || !activeSegment.text.trim()) {
+    captionOverlay.hidden = true;
+    captionOverlay.textContent = "";
+    return;
+  }
+
+  captionOverlay.hidden = false;
+  captionOverlay.textContent = activeSegment.text;
+
+  if (activeIndex !== -1 && activeIndex !== selectedSegmentIndex) {
+    selectedSegmentIndex = activeIndex;
+    renderSubtitleRows();
   }
 }
 
@@ -283,6 +308,7 @@ function openSubtitleEditor(data) {
   videoPreview.src = `/outputs/${lastOutputFile}`;
   subtitleEditor.hidden = false;
   renderSubtitleRows();
+  updateCaptionOverlay();
   setSaveState("保存済み", "saved");
 }
 
@@ -305,6 +331,7 @@ async function saveSubtitleEdits() {
     subtitleSegments = normalizeSegments(data.segments);
     showSubtitleLinks(data);
     renderSubtitleRows();
+    updateCaptionOverlay();
     setSaveState("保存済み", "saved");
   } catch (error) {
     processError.textContent = error.message;
@@ -513,6 +540,8 @@ undoButton.addEventListener("click", undoEdit);
 redoButton.addEventListener("click", redoEdit);
 saveSubtitlesButton.addEventListener("click", saveSubtitleEdits);
 replaceAllButton.addEventListener("click", replaceAllText);
+videoPreview.addEventListener("timeupdate", updateCaptionOverlay);
+videoPreview.addEventListener("seeked", updateCaptionOverlay);
 
 loadFFmpegStatus();
 loadWhisperStatus();

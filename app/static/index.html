@@ -4,8 +4,8 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Jump Caption</title>
-    <link rel="stylesheet" href="/static/style.css?v=sprint3" />
-    <script src="/static/app.js?v=sprint3" defer></script>
+    <link rel="stylesheet" href="/static/style.css?v=sprint3-caption-preview" />
+    <script src="/static/app.js?v=sprint3-caption-preview" defer></script>
   </head>
   <body>
     <main class="app-shell">
@@ -154,7 +154,10 @@
 
           <div class="editor-layout">
             <div class="preview-column">
-              <video id="video-preview" controls></video>
+              <div class="video-preview-wrap">
+                <video id="video-preview" controls></video>
+                <div id="caption-overlay" class="caption-overlay" hidden></div>
+              </div>
               <div class="editor-actions">
                 <button id="add-segment" type="button">追加</button>
                 <button id="delete-segment" type="button">削除</button>
