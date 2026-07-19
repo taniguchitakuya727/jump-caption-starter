@@ -2,7 +2,7 @@
 
 Jump Caption は、Mac / Windows の両方で動くローカルWebアプリとして開発する動画編集補助ツールです。
 
-Sprint 1 では、FastAPI のローカルサーバー、動画ファイル選択UI、FFmpeg検出API、無音検出、ジャンプカット済みMP4出力、無音区間JSON保存を実装しています。Whisper と字幕生成はまだ実装していません。
+Sprint 2 では、FastAPI のローカルサーバー、動画ファイル選択UI、FFmpeg検出API、無音検出、ジャンプカット済みMP4出力、無音区間JSON保存、faster-whisper によるローカル字幕生成を実装しています。
 
 ## Requirements
 
@@ -87,11 +87,15 @@ pytest
 - 選択したファイルをアップロードし、FFmpegで無音区間を検出する
 - `<original>_cut.mp4` と `<original>_silences.json` を `outputs/` に保存する
 - 処理ログとエラー内容を画面に表示する
+- ジャンプカット済みMP4から SRT / TXT を生成する
+- 字幕セグメント、認識ログ、怪しい区間フラグを `<original>_subtitles.json` に保存する
 
 ## Assumptions
 
-- Sprint 1 では、ブラウザで選択したファイルをローカルFastAPIサーバーへアップロードして処理します。外部サービスには送信しません。
+- Sprint 2 では、ブラウザで選択したファイルをローカルFastAPIサーバーへアップロードして処理します。外部サービスには送信しません。
 - FFmpeg はアプリに同梱せず、ユーザーの `PATH` から検出します。
 - `ffprobe` も `PATH` から検出します。通常は FFmpeg と同時にインストールされます。
 - Sprint 1 のジャンプカットは音声付きMP4を主対象にしています。音声トラックのない動画は後続で対応します。
+- Whisperモデルは初回の字幕生成時にダウンロードされます。初期値は日本語、CPU、`small`、`int8` です。
+- faster-whisper の詳細な認識確信度はモデル出力に依存するため、Sprint 2 では `avg_logprob` と `no_speech_prob` を保存し、怪しい区間のフラグに使います。
 - Windows対応を妨げないよう、OS固有のパス区切りやシェル前提の処理はアプリ本体に入れていません。

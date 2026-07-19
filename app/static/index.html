@@ -92,11 +92,56 @@
             </dl>
             <p class="error-text" id="ffmpeg-error" hidden></p>
           </section>
+
+          <section class="panel" aria-labelledby="whisper-heading">
+            <div class="panel-heading">
+              <h2 id="whisper-heading">Whisper</h2>
+              <button id="refresh-whisper" type="button">再確認</button>
+            </div>
+            <dl class="status-list">
+              <div>
+                <dt>状態</dt>
+                <dd id="whisper-available">確認中</dd>
+              </div>
+              <div>
+                <dt>モデル</dt>
+                <dd id="whisper-model">small</dd>
+              </div>
+              <div>
+                <dt>言語</dt>
+                <dd id="whisper-language">ja</dd>
+              </div>
+            </dl>
+            <p class="error-text" id="whisper-note" hidden></p>
+          </section>
         </div>
 
         <section class="panel result-panel" aria-labelledby="result-heading">
           <h2 id="result-heading">処理結果</h2>
           <div class="result-links" id="result-links" hidden></div>
+          <form id="subtitle-form" class="subtitle-form" hidden>
+            <div class="settings-grid">
+              <label>
+                <span>Whisperモデル</span>
+                <select name="model_size">
+                  <option value="small" selected>small</option>
+                  <option value="base">base</option>
+                  <option value="tiny">tiny</option>
+                  <option value="medium">medium</option>
+                </select>
+              </label>
+              <label>
+                <span>字幕言語</span>
+                <select name="language">
+                  <option value="ja" selected>日本語</option>
+                  <option value="en">English</option>
+                  <option value="auto">自動検出</option>
+                </select>
+              </label>
+            </div>
+            <button id="generate-subtitles" type="submit">字幕生成</button>
+          </form>
+          <div class="result-links" id="subtitle-links" hidden></div>
           <p class="error-text" id="process-error" hidden></p>
           <pre id="process-log" aria-live="polite">待機中</pre>
         </section>

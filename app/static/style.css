@@ -29,7 +29,8 @@ body {
 }
 
 button,
-input {
+input,
+select {
   font: inherit;
 }
 
@@ -178,13 +179,15 @@ button:hover {
   font-size: 0.9rem;
 }
 
-.settings-grid input {
+.settings-grid input,
+.settings-grid select {
   width: 100%;
   min-height: 40px;
   border: 1px solid var(--line);
   border-radius: 6px;
   padding: 8px 10px;
   color: var(--ink);
+  background: #ffffff;
 }
 
 .status-list {
@@ -221,6 +224,16 @@ dd {
   font-weight: 700;
 }
 
+#whisper-available[data-state="ok"] {
+  color: var(--accent-strong);
+  font-weight: 700;
+}
+
+#whisper-available[data-state="missing"] {
+  color: var(--warn);
+  font-weight: 700;
+}
+
 .error-text {
   margin: 18px 0 0;
   color: var(--warn);
@@ -247,6 +260,12 @@ dd {
   padding: 0 12px;
   color: var(--accent-strong);
   text-decoration: none;
+}
+
+.subtitle-form {
+  margin: 16px 0;
+  border-top: 1px solid var(--line);
+  padding-top: 16px;
 }
 
 pre {

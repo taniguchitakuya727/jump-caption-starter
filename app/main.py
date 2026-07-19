@@ -9,6 +9,12 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.services.ffmpeg import detect_ffmpeg
+from app.services.subtitles import (
+    SubtitleGenerationError,
+    SubtitleSettings,
+    faster_whisper_available,
+    generate_subtitles,
+)
 from app.services.video_processing import (
     JumpCutSettings,
     VideoProcessingError,
@@ -44,6 +50,18 @@ def health() -> dict[str, str]:
 @app.get("/api/ffmpeg")
 def ffmpeg_status() -> dict[str, object]:
     return detect_ffmpeg().to_dict()
+
+
+@app.get("/api/whisper")
+def whisper_status() -> dict[str, object]:
+    return {
+        "available": faster_whisper_available(),
+        "default_model": "small",
+        "default_language": "ja",
+        "device": "cpu",
+        "compute_type": "int8",
+        "note": "初回の字幕生成時にWhisperモデルのダウンロードが必要になる場合があります。",
+    }
 
 
 @app.post("/api/jump-cut")
@@ -90,9 +108,52 @@ def jump_cut(
     }
 
 
+@app.post("/api/subtitles")
+def subtitles(
+    filename: str = Form(...),
+    model_size: str = Form("small"),
+    language: str = Form("ja"),
+) -> dict[str, object]:
+    media_path = safe_output_path(filename)
+    if not media_path.is_file():
+        raise HTTPException(status_code=404, detail="動画ファイルが見つかりません。")
+
+    try:
+        result = generate_subtitles(
+            media_path=media_path,
+            output_dir=OUTPUT_DIR,
+            settings=SubtitleSettings(
+                model_size=model_size,
+                language=None if language in {"", "auto"} else language,
+                device="cpu",
+                compute_type="int8",
+            ),
+        )
+    except SubtitleGenerationError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    return {
+        "srt_file": result.srt_path.name,
+        "srt_url": f"/outputs/{result.srt_path.name}",
+        "txt_file": result.txt_path.name,
+        "txt_url": f"/outputs/{result.txt_path.name}",
+        "metadata_file": result.metadata_path.name,
+        "metadata_url": f"/outputs/{result.metadata_path.name}",
+        "segments": [segment.to_dict() for segment in result.segments],
+        "logs": result.logs,
+    }
+
+
 @app.get("/outputs/{filename}", include_in_schema=False)
 def output_file(filename: str) -> FileResponse:
-    path = (OUTPUT_DIR / filename).resolve()
-    if path.parent != OUTPUT_DIR.resolve() or not path.is_file():
+    path = safe_output_path(filename)
+    if not path.is_file():
         raise HTTPException(status_code=404, detail="Output file not found.")
     return FileResponse(path)
+
+
+def safe_output_path(filename: str) -> Path:
+    path = (OUTPUT_DIR / Path(filename).name).resolve()
+    if path.parent != OUTPUT_DIR.resolve():
+        raise HTTPException(status_code=400, detail="Invalid output filename.")
+    return path
