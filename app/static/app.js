@@ -201,8 +201,12 @@ async function loadOutputLibrary() {
       renderSubtitleLibraryItem,
     );
   } catch (error) {
+    const message =
+      error.message === "HTTP 404"
+        ? "サーバーを再起動してください。"
+        : error.message;
     videoLibrary.textContent = "読み込み失敗";
-    subtitleLibrary.textContent = error.message;
+    subtitleLibrary.textContent = message;
   }
 }
 
