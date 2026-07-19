@@ -587,7 +587,11 @@ function splitSegment() {
   if (!segment) return;
   pushHistory();
   const originalEnd = segment.end;
-  const midpoint = (segment.start + segment.end) / 2;
+  const currentTime = videoPreview.currentTime || 0;
+  const midpoint =
+    currentTime > segment.start && currentTime < segment.end
+      ? Math.min(Math.max(currentTime, segment.start + 0.05), segment.end - 0.05)
+      : (segment.start + segment.end) / 2;
   const textMidpoint = Math.ceil(segment.text.length / 2);
   const firstText = segment.text.slice(0, textMidpoint).trim();
   const secondText = segment.text.slice(textMidpoint).trim();

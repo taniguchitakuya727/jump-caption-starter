@@ -26,8 +26,8 @@ def test_homepage_contains_file_picker() -> None:
     assert response.status_code == 200
     assert "Jump Caption" in response.text
     assert 'type="file"' in response.text
-    assert "/static/app.js?v=sprint4-format" in response.text
-    assert "/static/style.css?v=sprint4-format" in response.text
+    assert "/static/app.js?v=sprint4-playhead-split" in response.text
+    assert "/static/style.css?v=sprint4-playhead-split" in response.text
     assert "字幕エディタ" in response.text
     assert "caption-overlay" in response.text
     assert "続きから" in response.text
