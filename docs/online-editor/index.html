@@ -1,0 +1,818 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Jump Caption Online Subtitle Editor</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f5f7fa;
+        --surface: #ffffff;
+        --ink: #17202a;
+        --muted: #627080;
+        --line: #d8dee7;
+        --accent: #19786f;
+        --accent-strong: #0f5e57;
+        --warn: #b44536;
+        --soft: #e9f4f2;
+        --shadow: 0 14px 34px rgb(22 34 45 / 10%);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font-family:
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
+      }
+
+      button,
+      input,
+      textarea {
+        font: inherit;
+      }
+
+      button {
+        min-height: 38px;
+        border: 1px solid var(--accent);
+        border-radius: 6px;
+        padding: 0 12px;
+        background: var(--accent);
+        color: #ffffff;
+        cursor: pointer;
+      }
+
+      button:hover {
+        border-color: var(--accent-strong);
+        background: var(--accent-strong);
+      }
+
+      button.secondary {
+        background: #ffffff;
+        color: var(--accent-strong);
+      }
+
+      button.danger {
+        border-color: var(--warn);
+        background: var(--warn);
+      }
+
+      .shell {
+        width: min(1180px, calc(100% - 32px));
+        margin: 0 auto;
+        padding: 36px 0;
+      }
+
+      header {
+        display: grid;
+        gap: 10px;
+        margin-bottom: 24px;
+      }
+
+      .eyebrow {
+        margin: 0;
+        color: var(--accent-strong);
+        font-size: 0.82rem;
+        font-weight: 800;
+        letter-spacing: 0;
+        text-transform: uppercase;
+      }
+
+      h1,
+      h2,
+      h3,
+      p {
+        margin-top: 0;
+      }
+
+      h1 {
+        margin-bottom: 0;
+        font-size: clamp(2rem, 6vw, 4rem);
+        line-height: 1;
+        letter-spacing: 0;
+      }
+
+      h2 {
+        margin-bottom: 16px;
+        font-size: 1.05rem;
+      }
+
+      h3 {
+        margin-bottom: 10px;
+        font-size: 0.95rem;
+      }
+
+      .lead {
+        max-width: 760px;
+        margin: 0;
+        color: var(--muted);
+        line-height: 1.7;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: minmax(280px, 0.82fr) minmax(0, 1.18fr);
+        gap: 18px;
+        align-items: start;
+      }
+
+      .panel {
+        min-width: 0;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 20px;
+        background: var(--surface);
+        box-shadow: var(--shadow);
+      }
+
+      .stack {
+        display: grid;
+        gap: 14px;
+      }
+
+      label {
+        display: grid;
+        gap: 7px;
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+
+      input[type="file"],
+      input[type="number"],
+      textarea {
+        width: 100%;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        padding: 9px 10px;
+        color: var(--ink);
+        background: #ffffff;
+      }
+
+      textarea {
+        min-height: 150px;
+        resize: vertical;
+        line-height: 1.55;
+      }
+
+      .hint {
+        margin: 0;
+        color: var(--muted);
+        font-size: 0.88rem;
+        line-height: 1.6;
+      }
+
+      .media-wrap {
+        position: relative;
+        width: 100%;
+        overflow: hidden;
+        border-radius: 8px;
+        background: #101820;
+      }
+
+      video,
+      audio {
+        display: block;
+        width: 100%;
+      }
+
+      video {
+        aspect-ratio: 16 / 9;
+        background: #101820;
+      }
+
+      audio {
+        min-height: 54px;
+      }
+
+      .caption-overlay {
+        position: absolute;
+        left: 5%;
+        right: 5%;
+        bottom: 8%;
+        z-index: 2;
+        max-height: 42%;
+        overflow: hidden;
+        color: #ffffff;
+        font-size: clamp(1rem, 3vw, 1.7rem);
+        font-weight: 800;
+        line-height: 1.35;
+        text-align: center;
+        text-shadow:
+          0 2px 4px rgb(0 0 0 / 92%),
+          0 0 2px rgb(0 0 0 / 100%);
+        white-space: pre-wrap;
+        pointer-events: none;
+      }
+
+      .actions,
+      .download-actions,
+      .timing-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .download-actions {
+        margin-top: 12px;
+      }
+
+      .timing-row label {
+        min-width: 110px;
+        flex: 1 1 120px;
+      }
+
+      .status {
+        min-height: 42px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 11px 12px;
+        color: var(--muted);
+        background: #fbfcfd;
+        line-height: 1.5;
+        overflow-wrap: anywhere;
+      }
+
+      .status.error {
+        border-color: color-mix(in srgb, var(--warn), white 55%);
+        color: var(--warn);
+      }
+
+      .editor-grid {
+        display: grid;
+        grid-template-columns: minmax(260px, 0.78fr) minmax(0, 1.22fr);
+        gap: 16px;
+        align-items: start;
+      }
+
+      .table-wrap {
+        max-height: 620px;
+        overflow: auto;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        table-layout: fixed;
+      }
+
+      th,
+      td {
+        border-bottom: 1px solid var(--line);
+        padding: 8px;
+        vertical-align: top;
+      }
+
+      th {
+        position: sticky;
+        top: 0;
+        z-index: 1;
+        background: #eef2f6;
+        color: var(--muted);
+        font-size: 0.86rem;
+        text-align: left;
+      }
+
+      th:nth-child(1),
+      td:nth-child(1) {
+        width: 46px;
+      }
+
+      th:nth-child(2),
+      th:nth-child(3),
+      td:nth-child(2),
+      td:nth-child(3) {
+        width: 92px;
+      }
+
+      tr.is-selected {
+        background: var(--soft);
+      }
+
+      td input,
+      td textarea {
+        padding: 7px 8px;
+      }
+
+      td textarea {
+        min-height: 58px;
+      }
+
+      @media (max-width: 880px) {
+        .grid,
+        .editor-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .shell {
+          width: min(100% - 24px, 1180px);
+          padding: 24px 0;
+        }
+
+        .panel {
+          padding: 16px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="shell">
+      <header>
+        <p class="eyebrow">Browser-only subtitle editor</p>
+        <h1>Jump Caption Online Editor</h1>
+        <p class="lead">
+          音声・動画と字幕テキストをブラウザ内で読み込み、字幕を修正してSRT/TXT/JSONを書き出します。
+          ファイルはサーバーへアップロードされません。
+        </p>
+      </header>
+
+      <section class="grid">
+        <div class="panel stack">
+          <h2>読み込み</h2>
+          <label>
+            <span>音声または動画</span>
+            <input id="media-file" type="file" accept="audio/*,video/*,.mp3,.m4a,.wav,.mp4,.mov,.m4v" />
+          </label>
+          <label>
+            <span>SRTまたはJSON</span>
+            <input id="subtitle-file" type="file" accept=".srt,.json,.txt" />
+          </label>
+          <label>
+            <span>テキスト貼り付け</span>
+            <textarea id="plain-text" placeholder="文字起こしテキストを貼り付けます。1行ごとに字幕化できます。"></textarea>
+          </label>
+          <div class="timing-row">
+            <label>
+              <span>1字幕の秒数</span>
+              <input id="seconds-per-caption" type="number" min="1" step="0.5" value="3" />
+            </label>
+            <label>
+              <span>1字幕の文字数</span>
+              <input id="chars-per-caption" type="number" min="8" step="1" value="28" />
+            </label>
+          </div>
+          <div class="actions">
+            <button id="load-text" type="button">貼り付けテキストを字幕化</button>
+            <button id="clear-all" class="danger" type="button">クリア</button>
+          </div>
+          <p class="hint">
+            SRTなら時刻付きで読み込みます。普通のテキストは仮タイミングを付けるので、再生しながら調整してください。
+          </p>
+          <div id="status" class="status">音声/動画と字幕を読み込んでください。</div>
+        </div>
+
+        <div class="panel stack">
+          <h2>プレビュー</h2>
+          <div class="media-wrap">
+            <video id="video-preview" controls hidden></video>
+            <audio id="audio-preview" controls hidden></audio>
+            <div id="caption-overlay" class="caption-overlay" hidden></div>
+          </div>
+          <div class="download-actions">
+            <button id="download-srt" type="button">SRTを書き出し</button>
+            <button id="download-txt" class="secondary" type="button">TXTを書き出し</button>
+            <button id="download-json" class="secondary" type="button">JSONを書き出し</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel stack" style="margin-top: 18px">
+        <div class="editor-grid">
+          <div class="stack">
+            <h2>編集</h2>
+            <div class="actions">
+              <button id="add-row" type="button">追加</button>
+              <button id="delete-row" class="danger" type="button">削除</button>
+              <button id="split-row" class="secondary" type="button">分割</button>
+              <button id="merge-row" class="secondary" type="button">結合</button>
+            </div>
+            <p class="hint">
+              行をクリックすると、その字幕の開始位置へ移動します。開始/終了/本文は直接編集できます。
+            </p>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>開始</th>
+                  <th>終了</th>
+                  <th>本文</th>
+                </tr>
+              </thead>
+              <tbody id="caption-rows"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script>
+      const mediaFile = document.querySelector("#media-file");
+      const subtitleFile = document.querySelector("#subtitle-file");
+      const plainText = document.querySelector("#plain-text");
+      const secondsPerCaption = document.querySelector("#seconds-per-caption");
+      const charsPerCaption = document.querySelector("#chars-per-caption");
+      const loadTextButton = document.querySelector("#load-text");
+      const clearAllButton = document.querySelector("#clear-all");
+      const statusBox = document.querySelector("#status");
+      const videoPreview = document.querySelector("#video-preview");
+      const audioPreview = document.querySelector("#audio-preview");
+      const captionOverlay = document.querySelector("#caption-overlay");
+      const captionRows = document.querySelector("#caption-rows");
+      const addRowButton = document.querySelector("#add-row");
+      const deleteRowButton = document.querySelector("#delete-row");
+      const splitRowButton = document.querySelector("#split-row");
+      const mergeRowButton = document.querySelector("#merge-row");
+      const downloadSrtButton = document.querySelector("#download-srt");
+      const downloadTxtButton = document.querySelector("#download-txt");
+      const downloadJsonButton = document.querySelector("#download-json");
+
+      let captions = [];
+      let selectedIndex = 0;
+      let mediaObjectUrl = null;
+
+      function setStatus(message, isError = false) {
+        statusBox.textContent = message;
+        statusBox.classList.toggle("error", isError);
+      }
+
+      function activeMedia() {
+        return videoPreview.hidden ? audioPreview : videoPreview;
+      }
+
+      function formatSeconds(seconds) {
+        return Number(seconds || 0).toFixed(3);
+      }
+
+      function parseTimecode(value) {
+        const match = value.trim().match(/(\d+):(\d{2}):(\d{2})[,.](\d{1,3})/);
+        if (!match) return 0;
+        const [, hours, minutes, seconds, millis] = match;
+        return (
+          Number(hours) * 3600 +
+          Number(minutes) * 60 +
+          Number(seconds) +
+          Number(millis.padEnd(3, "0")) / 1000
+        );
+      }
+
+      function toTimecode(seconds) {
+        const safeSeconds = Math.max(0, Number(seconds) || 0);
+        const hours = Math.floor(safeSeconds / 3600);
+        const minutes = Math.floor((safeSeconds % 3600) / 60);
+        const secs = Math.floor(safeSeconds % 60);
+        const millis = Math.round((safeSeconds - Math.floor(safeSeconds)) * 1000);
+        return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(secs).padStart(2, "0")},${String(millis).padStart(3, "0")}`;
+      }
+
+      function normalizeCaptions() {
+        captions = captions
+          .map((caption, index) => ({
+            index: index + 1,
+            start: Number(caption.start) || 0,
+            end: Math.max(Number(caption.end) || 0, (Number(caption.start) || 0) + 0.1),
+            text: String(caption.text || ""),
+          }))
+          .sort((a, b) => a.start - b.start)
+          .map((caption, index) => ({ ...caption, index: index + 1 }));
+        selectedIndex = Math.max(0, Math.min(selectedIndex, captions.length - 1));
+      }
+
+      function parseSrt(text) {
+        return text
+          .replace(/\r/g, "")
+          .split(/\n{2,}/)
+          .map((block) => block.trim())
+          .filter(Boolean)
+          .map((block, index) => {
+            const lines = block.split("\n");
+            const timeLineIndex = lines.findIndex((line) => line.includes("-->"));
+            if (timeLineIndex === -1) return null;
+            const [startRaw, endRaw] = lines[timeLineIndex].split("-->").map((part) => part.trim());
+            return {
+              index: index + 1,
+              start: parseTimecode(startRaw),
+              end: parseTimecode(endRaw),
+              text: lines.slice(timeLineIndex + 1).join("\n").trim(),
+            };
+          })
+          .filter(Boolean);
+      }
+
+      function parseJson(text) {
+        const data = JSON.parse(text);
+        const rawSegments = Array.isArray(data) ? data : data.segments;
+        if (!Array.isArray(rawSegments)) {
+          throw new Error("JSON内にsegments配列がありません。");
+        }
+        return rawSegments.map((segment, index) => ({
+          index: index + 1,
+          start: Number(segment.start) || 0,
+          end: Number(segment.end) || 0,
+          text: String(segment.text || ""),
+        }));
+      }
+
+      function splitPlainTextIntoCaptions(text) {
+        const maxChars = Math.max(8, Number(charsPerCaption.value) || 28);
+        const duration = Math.max(1, Number(secondsPerCaption.value) || 3);
+        const sourceLines = text
+          .replace(/\r/g, "")
+          .split("\n")
+          .map((line) => line.trim())
+          .filter(Boolean);
+        const chunks = [];
+
+        sourceLines.forEach((line) => {
+          let remaining = line;
+          while (remaining.length > maxChars) {
+            const splitAt = findSplitPosition(remaining, maxChars);
+            chunks.push(remaining.slice(0, splitAt).trim());
+            remaining = remaining.slice(splitAt).trim();
+          }
+          if (remaining) chunks.push(remaining);
+        });
+
+        return chunks.map((chunk, index) => ({
+          index: index + 1,
+          start: index * duration,
+          end: (index + 1) * duration,
+          text: chunk,
+        }));
+      }
+
+      function findSplitPosition(text, maxChars) {
+        const target = Math.min(maxChars, text.length - 1);
+        const candidates = [];
+        for (let index = Math.max(1, target - 8); index <= Math.min(text.length - 1, target + 8); index += 1) {
+          candidates.push(index);
+        }
+        return candidates.sort((a, b) => splitScore(text, b, target) - splitScore(text, a, target))[0] || target;
+      }
+
+      function splitScore(text, index, target) {
+        const before = text.slice(0, index);
+        const after = text.slice(index);
+        let score = 100 - Math.abs(index - target) * 4;
+        if ("。！？.!?".includes(before.slice(-1))) score += 80;
+        if ("、，, ".includes(before.slice(-1))) score += 55;
+        if ("はがをにへでともやの、。！？,.!?".includes(after.slice(0, 1))) score -= 60;
+        if (after.length <= 2) score -= 40;
+        return score;
+      }
+
+      function renderRows() {
+        normalizeCaptions();
+        captionRows.innerHTML = "";
+        captions.forEach((caption, index) => {
+          const row = document.createElement("tr");
+          row.classList.toggle("is-selected", index === selectedIndex);
+
+          const numberCell = document.createElement("td");
+          numberCell.textContent = String(index + 1);
+
+          const startCell = document.createElement("td");
+          const startInput = document.createElement("input");
+          startInput.type = "number";
+          startInput.step = "0.001";
+          startInput.min = "0";
+          startInput.value = formatSeconds(caption.start);
+          startInput.addEventListener("change", () => {
+            caption.start = Number(startInput.value);
+            renderRows();
+            updateOverlay();
+          });
+          startCell.append(startInput);
+
+          const endCell = document.createElement("td");
+          const endInput = document.createElement("input");
+          endInput.type = "number";
+          endInput.step = "0.001";
+          endInput.min = "0";
+          endInput.value = formatSeconds(caption.end);
+          endInput.addEventListener("change", () => {
+            caption.end = Number(endInput.value);
+            renderRows();
+            updateOverlay();
+          });
+          endCell.append(endInput);
+
+          const textCell = document.createElement("td");
+          const textArea = document.createElement("textarea");
+          textArea.value = caption.text;
+          textArea.rows = 2;
+          textArea.addEventListener("input", () => {
+            caption.text = textArea.value;
+            updateOverlay();
+          });
+          textCell.append(textArea);
+
+          row.addEventListener("click", (event) => {
+            if (event.target === row || event.target === numberCell) {
+              selectedIndex = index;
+              activeMedia().currentTime = Math.max(0, caption.start);
+              renderRows();
+              updateOverlay();
+            }
+          });
+
+          row.append(numberCell, startCell, endCell, textCell);
+          captionRows.append(row);
+        });
+      }
+
+      function findActiveCaption() {
+        const currentTime = activeMedia().currentTime || 0;
+        const index = captions.findIndex((caption, captionIndex) => {
+          const isLast = captionIndex === captions.length - 1;
+          return currentTime >= caption.start && (currentTime < caption.end || (isLast && currentTime <= caption.end));
+        });
+        if (index !== -1) selectedIndex = index;
+        return captions[index];
+      }
+
+      function updateOverlay() {
+        const caption = findActiveCaption();
+        if (!caption || !caption.text.trim()) {
+          captionOverlay.hidden = true;
+          captionOverlay.textContent = "";
+          return;
+        }
+        captionOverlay.hidden = videoPreview.hidden;
+        captionOverlay.textContent = caption.text;
+        captionRows.querySelectorAll("tr").forEach((row, index) => {
+          row.classList.toggle("is-selected", index === selectedIndex);
+        });
+      }
+
+      function setMediaFile(file) {
+        if (mediaObjectUrl) URL.revokeObjectURL(mediaObjectUrl);
+        mediaObjectUrl = URL.createObjectURL(file);
+        const isVideo = file.type.startsWith("video/");
+        videoPreview.hidden = !isVideo;
+        audioPreview.hidden = isVideo;
+        if (isVideo) {
+          videoPreview.src = mediaObjectUrl;
+          audioPreview.removeAttribute("src");
+        } else {
+          audioPreview.src = mediaObjectUrl;
+          videoPreview.removeAttribute("src");
+          captionOverlay.hidden = true;
+        }
+        setStatus(`${file.name} を読み込みました。`);
+      }
+
+      function toSrt() {
+        normalizeCaptions();
+        return captions
+          .map((caption, index) => `${index + 1}\n${toTimecode(caption.start)} --> ${toTimecode(caption.end)}\n${caption.text.trim()}\n`)
+          .join("\n");
+      }
+
+      function toTxt() {
+        normalizeCaptions();
+        return captions.map((caption) => caption.text.replace(/\n/g, " ")).join("\n");
+      }
+
+      function downloadFile(filename, content, type) {
+        const blob = new Blob([content], { type });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = filename;
+        document.body.append(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(url);
+      }
+
+      mediaFile.addEventListener("change", () => {
+        const file = mediaFile.files[0];
+        if (file) setMediaFile(file);
+      });
+
+      subtitleFile.addEventListener("change", async () => {
+        const file = subtitleFile.files[0];
+        if (!file) return;
+        try {
+          const text = await file.text();
+          if (file.name.toLowerCase().endsWith(".json")) {
+            captions = parseJson(text);
+          } else if (file.name.toLowerCase().endsWith(".srt")) {
+            captions = parseSrt(text);
+          } else {
+            captions = splitPlainTextIntoCaptions(text);
+          }
+          selectedIndex = 0;
+          renderRows();
+          updateOverlay();
+          setStatus(`${file.name} から ${captions.length} 件の字幕を読み込みました。`);
+        } catch (error) {
+          setStatus(error.message, true);
+        }
+      });
+
+      loadTextButton.addEventListener("click", () => {
+        captions = splitPlainTextIntoCaptions(plainText.value);
+        selectedIndex = 0;
+        renderRows();
+        updateOverlay();
+        setStatus(`貼り付けテキストから ${captions.length} 件の字幕を作りました。`);
+      });
+
+      clearAllButton.addEventListener("click", () => {
+        captions = [];
+        selectedIndex = 0;
+        plainText.value = "";
+        renderRows();
+        updateOverlay();
+        setStatus("クリアしました。");
+      });
+
+      addRowButton.addEventListener("click", () => {
+        const current = captions[selectedIndex];
+        const start = current ? current.end : 0;
+        captions.splice(selectedIndex + 1, 0, {
+          index: selectedIndex + 2,
+          start,
+          end: start + 3,
+          text: "",
+        });
+        selectedIndex += 1;
+        renderRows();
+      });
+
+      deleteRowButton.addEventListener("click", () => {
+        if (!captions.length) return;
+        captions.splice(selectedIndex, 1);
+        selectedIndex = Math.max(0, selectedIndex - 1);
+        renderRows();
+        updateOverlay();
+      });
+
+      splitRowButton.addEventListener("click", () => {
+        const caption = captions[selectedIndex];
+        if (!caption) return;
+        const midpoint = (caption.start + caption.end) / 2;
+        const plain = caption.text.replace(/\n/g, "");
+        const splitAt = findSplitPosition(plain, Math.floor(plain.length / 2));
+        const first = plain.slice(0, splitAt).trim();
+        const second = plain.slice(splitAt).trim();
+        const originalEnd = caption.end;
+        caption.end = midpoint;
+        caption.text = first;
+        captions.splice(selectedIndex + 1, 0, {
+          index: selectedIndex + 2,
+          start: midpoint,
+          end: originalEnd,
+          text: second,
+        });
+        renderRows();
+        updateOverlay();
+      });
+
+      mergeRowButton.addEventListener("click", () => {
+        const caption = captions[selectedIndex];
+        const next = captions[selectedIndex + 1];
+        if (!caption || !next) return;
+        caption.end = next.end;
+        caption.text = `${caption.text}${caption.text && next.text ? "\n" : ""}${next.text}`;
+        captions.splice(selectedIndex + 1, 1);
+        renderRows();
+        updateOverlay();
+      });
+
+      downloadSrtButton.addEventListener("click", () => {
+        downloadFile("edited_subtitles.srt", toSrt(), "text/plain;charset=utf-8");
+      });
+
+      downloadTxtButton.addEventListener("click", () => {
+        downloadFile("edited_transcript.txt", toTxt(), "text/plain;charset=utf-8");
+      });
+
+      downloadJsonButton.addEventListener("click", () => {
+        normalizeCaptions();
+        downloadFile(
+          "edited_subtitles.json",
+          JSON.stringify({ source: mediaFile.files[0]?.name || "", segments: captions }, null, 2),
+          "application/json;charset=utf-8",
+        );
+      });
+
+      videoPreview.addEventListener("timeupdate", updateOverlay);
+      audioPreview.addEventListener("timeupdate", updateOverlay);
+      renderRows();
+    </script>
+  </body>
+</html>

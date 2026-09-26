@@ -101,6 +101,22 @@ set JUMP_CAPTION_PORT=8080
 
 詳しい手順は [docs/mac_friend_editor.md](docs/mac_friend_editor.md) を参照してください。
 
+## Googleドライブ経由で友人に字幕修正してもらう
+
+あなたが動画から書き起こしを作り、音声/動画ファイルとSRTをGoogleドライブで共有します。
+友人はオンライン字幕エディタでその2ファイルを読み込み、修正版SRTを書き出してGoogleドライブへ戻します。
+
+静的エディタ:
+
+```text
+docs/online-editor/index.html
+```
+
+GitHub Pagesで `docs/` を公開すると、友人はブラウザだけで編集できます。
+音声/動画やSRTはエディタのサーバーへアップロードされず、友人のブラウザ内で処理されます。
+
+手順は [docs/google_drive_friend_workflow.html](docs/google_drive_friend_workflow.html) を参照してください。
+
 ## GitHubからWebアプリとして公開する
 
 GitHub Pagesだけでは、Python / FFmpeg / faster-whisper を使うJump Caption本体は動きません。
