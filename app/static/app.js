@@ -41,7 +41,12 @@ const replaceText = document.querySelector("#replace-text");
 const replaceAllButton = document.querySelector("#replace-all");
 const videoLibrary = document.querySelector("#video-library");
 const subtitleLibrary = document.querySelector("#subtitle-library");
+const leadText = document.querySelector(".lead");
 
+let appConfig = {
+  friend_editor_mode: false,
+  mode_label: "通常モード",
+};
 let lastOutputFile = null;
 let lastSubtitleMetadataFile = null;
 let subtitleSegments = [];
@@ -182,7 +187,9 @@ function renderLibraryList(container, items, emptyText, renderItem) {
 }
 
 async function loadOutputLibrary() {
-  videoLibrary.textContent = "読み込み中";
+  if (!appConfig.friend_editor_mode) {
+    videoLibrary.textContent = "読み込み中";
+  }
   subtitleLibrary.textContent = "読み込み中";
 
   try {
@@ -192,12 +199,14 @@ async function loadOutputLibrary() {
     }
 
     const data = await response.json();
-    renderLibraryList(
-      videoLibrary,
-      data.videos || [],
-      "カット動画はまだありません。",
-      renderVideoLibraryItem,
-    );
+    if (!appConfig.friend_editor_mode) {
+      renderLibraryList(
+        videoLibrary,
+        data.videos || [],
+        "カット動画はまだありません。",
+        renderVideoLibraryItem,
+      );
+    }
     renderLibraryList(
       subtitleLibrary,
       data.subtitle_projects || [],
@@ -209,7 +218,9 @@ async function loadOutputLibrary() {
       error.message === "HTTP 404"
         ? "サーバーを再起動してください。"
         : error.message;
-    videoLibrary.textContent = "読み込み失敗";
+    if (!appConfig.friend_editor_mode) {
+      videoLibrary.textContent = "読み込み失敗";
+    }
     subtitleLibrary.textContent = message;
   }
 }
@@ -245,6 +256,38 @@ function renderSubtitleLibraryItem(item) {
 
   row.append(name, actions);
   return row;
+}
+
+async function loadAppConfig() {
+  try {
+    const response = await fetch("/api/config");
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+    appConfig = await response.json();
+  } catch {
+    appConfig = {
+      friend_editor_mode: false,
+      mode_label: "通常モード",
+    };
+  }
+
+  applyAppConfig();
+}
+
+function applyAppConfig() {
+  document.body.dataset.mode = appConfig.friend_editor_mode ? "friend-editor" : "owner";
+
+  if (appConfig.friend_editor_mode) {
+    document.querySelectorAll(".owner-only").forEach((element) => {
+      element.hidden = true;
+    });
+    if (leadText) {
+      leadText.textContent =
+        "共有された字幕をブラウザで確認し、本文やタイミングを修正できます。";
+    }
+    processLog.textContent = "字幕一覧から「エディタ」を開いて修正してください。変更は自動保存されます。";
+  }
 }
 
 function selectExistingVideo(filename) {
@@ -821,6 +864,13 @@ replaceAllButton.addEventListener("click", replaceAllText);
 videoPreview.addEventListener("timeupdate", updateCaptionOverlay);
 videoPreview.addEventListener("seeked", updateCaptionOverlay);
 
-loadFFmpegStatus();
-loadWhisperStatus();
-loadOutputLibrary();
+async function initializeApp() {
+  await loadAppConfig();
+  if (!appConfig.friend_editor_mode) {
+    loadFFmpegStatus();
+    loadWhisperStatus();
+  }
+  loadOutputLibrary();
+}
+
+initializeApp();

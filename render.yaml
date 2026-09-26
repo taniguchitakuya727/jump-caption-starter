@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: jump-caption
+    env: docker
+    autoDeploy: true
+    healthCheckPath: /api/health
+    envVars:
+      - key: JUMP_CAPTION_HOST
+        value: 0.0.0.0
+      - key: JUMP_CAPTION_PORT
+        value: 8000
+      - key: PYTHONUTF8
+        value: "1"
+      - key: PYTHONIOENCODING
+        value: utf-8

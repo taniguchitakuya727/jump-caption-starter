@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import shutil
 import uuid
 from pathlib import Path
@@ -33,6 +34,10 @@ STATIC_DIR = BASE_DIR / "static"
 UPLOAD_DIR = PROJECT_DIR / "uploads"
 OUTPUT_DIR = PROJECT_DIR / "outputs"
 
+
+def friend_editor_mode_enabled() -> bool:
+    return os.environ.get("JUMP_CAPTION_FRIEND_EDITOR", "").lower() in {"1", "true", "yes", "on"}
+
 app = FastAPI(
     title="Jump Caption",
     summary="Local web app starter for jump cuts and subtitles.",
@@ -50,6 +55,14 @@ def index() -> FileResponse:
 @app.get("/api/health")
 def health() -> dict[str, str]:
     return {"status": "ok"}
+
+
+@app.get("/api/config")
+def config() -> dict[str, object]:
+    return {
+        "friend_editor_mode": friend_editor_mode_enabled(),
+        "mode_label": "字幕修正モード" if friend_editor_mode_enabled() else "通常モード",
+    }
 
 
 @app.get("/api/ffmpeg")
@@ -115,6 +128,9 @@ def jump_cut(
     min_silence_duration: float = Form(0.5),
     retained_margin: float = Form(0.15),
 ) -> dict[str, object]:
+    if friend_editor_mode_enabled():
+        raise HTTPException(status_code=403, detail="字幕修正モードではジャンプカットできません。")
+
     if not file.filename:
         raise HTTPException(status_code=400, detail="ファイル名がありません。")
 
@@ -158,6 +174,9 @@ def subtitles(
     model_size: str = Form("small"),
     language: str = Form("ja"),
 ) -> dict[str, object]:
+    if friend_editor_mode_enabled():
+        raise HTTPException(status_code=403, detail="字幕修正モードでは字幕生成できません。")
+
     media_path = safe_output_path(filename)
     if not media_path.is_file():
         raise HTTPException(status_code=404, detail="動画ファイルが見つかりません。")

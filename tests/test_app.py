@@ -20,6 +20,16 @@ def test_health_endpoint() -> None:
     assert response.json() == {"status": "ok"}
 
 
+def test_config_endpoint_reports_friend_editor_mode(monkeypatch) -> None:
+    monkeypatch.setenv("JUMP_CAPTION_FRIEND_EDITOR", "1")
+
+    response = client.get("/api/config")
+
+    assert response.status_code == 200
+    assert response.json()["friend_editor_mode"] is True
+    assert response.json()["mode_label"] == "字幕修正モード"
+
+
 def test_homepage_contains_file_picker() -> None:
     response = client.get("/")
 
@@ -68,6 +78,17 @@ def test_jump_cut_endpoint_returns_output_links(monkeypatch, tmp_path) -> None:
     assert response.status_code == 200
     assert response.json()["output_url"] == "/outputs/sample_cut.mp4"
     assert response.json()["silence_json_url"] == "/outputs/sample_silences.json"
+
+
+def test_friend_editor_mode_blocks_jump_cut(monkeypatch) -> None:
+    monkeypatch.setenv("JUMP_CAPTION_FRIEND_EDITOR", "1")
+
+    response = client.post(
+        "/api/jump-cut",
+        files={"file": ("sample.mp4", b"fake-video", "video/mp4")},
+    )
+
+    assert response.status_code == 403
 
 
 def test_whisper_status_endpoint(monkeypatch) -> None:
@@ -141,6 +162,20 @@ def test_subtitles_endpoint_returns_output_links(monkeypatch, tmp_path) -> None:
     assert response.json()["srt_url"] == "/outputs/sample_cut.srt"
     assert response.json()["txt_url"] == "/outputs/sample_cut.txt"
     assert response.json()["metadata_url"] == "/outputs/sample_cut_subtitles.json"
+
+
+def test_friend_editor_mode_blocks_subtitle_generation(monkeypatch, tmp_path) -> None:
+    media_path = tmp_path / "sample_cut.mp4"
+    media_path.write_bytes(b"mp4")
+    monkeypatch.setattr(main, "OUTPUT_DIR", tmp_path)
+    monkeypatch.setenv("JUMP_CAPTION_FRIEND_EDITOR", "1")
+
+    response = client.post(
+        "/api/subtitles",
+        data={"filename": "sample_cut.mp4", "model_size": "small", "language": "ja"},
+    )
+
+    assert response.status_code == 403
 
 
 def test_get_subtitle_metadata(monkeypatch, tmp_path) -> None:

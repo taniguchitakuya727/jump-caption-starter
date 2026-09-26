@@ -9,7 +9,7 @@
 
 `start_windows.bat` が Python と FFmpeg の有無を確認します。入っていない場合は、日本語の案内を表示して止まります。
 
-Python 3.9以上で動く想定ですが、友人PCでの確認は Python 3.10 / 3.11 をおすすめします。Python 3.12以降は一部の音声認識パッケージの対応状況で詰まる可能性があります。
+友人PCでの確認は Python 3.10 / 3.11 を使ってください。Python 3.13 は一部の音声認識パッケージで止まる可能性があるため、この配布版では起動時に止めます。
 
 Pythonパッケージは `start_windows.bat` が自動で入れます。主な依存関係は次です。
 
@@ -31,9 +31,13 @@ Pythonパッケージは `start_windows.bat` が自動で入れます。主な�
 
 起動中は黒いコマンド画面を閉じないでください。閉じるとアプリも停止します。
 
+`start_windows.bat` は黒い画面がすぐ閉じないようにしてあります。エラーが出た場合は、その画面に表示された日本語メッセージを確認してください。
+
 ## 2回目以降
 
 `start_windows.bat` をダブルクリックします。すでに `.venv` があれば、そのまま依存確認後に起動します。
+
+もし黒い画面に「Existing .venv uses unsupported Python」と表示された場合は、以前に Python 3.13 などで `.venv` が作られています。Python 3.11 を入れたあと、このフォルダ内の `.venv` フォルダを削除して、もう一度 `start_windows.bat` をダブルクリックしてください。
 
 ## FFmpegの入れ方
 
@@ -107,7 +111,7 @@ python tools\build_windows_dist.py
 dist_windows\jump-caption-mvp
 ```
 
-このフォルダには、アプリ本体、`start_windows.bat`、`install_ffmpeg_windows.bat`、`README_WINDOWS.md`、設定ファイル、空の `outputs` / `uploads` が入ります。Python本体、FFmpeg、Whisperモデル、仮想環境、動画ファイルは含みません。
+このフォルダには、アプリ本体、`start_windows.bat`、`start_windows_core.bat`、`install_ffmpeg_windows.bat`、`README_WINDOWS.md`、設定ファイル、空の `outputs` / `uploads` が入ります。Python本体、FFmpeg、Whisperモデル、仮想環境、動画ファイルは含みません。
 
 ## 困ったとき
 
@@ -117,6 +121,8 @@ dist_windows\jump-caption-mvp
 
 - Pythonが入っていない
 - Pythonインストール時にPATHへ追加していない
+- Python 3.13 だけが入っている
+- `.venv` が Python 3.13 で作られている
 - FFmpegが入っていない
 - インターネット接続がない
 - セキュリティソフトがPythonやFFmpegの実行を止めている

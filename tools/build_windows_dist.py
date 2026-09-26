@@ -12,8 +12,12 @@ FILES = [
     "README.md",
     "README_WINDOWS.md",
     "start_windows.bat",
+    "start_windows_core.bat",
     "install_ffmpeg_windows.bat",
+    "docs/windows_friend_start_guide.md",
+    "docs/windows_friend_start_guide.html",
     "tools/check_windows_readiness.py",
+    "tools/run_windows_server.py",
 ]
 
 DIRS = [

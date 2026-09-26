@@ -87,6 +87,34 @@ set JUMP_CAPTION_PORT=8080
 .\.venv\Scripts\python.exe -m app
 ```
 
+## 友人に字幕修正だけしてもらう
+
+あなたのMacでジャンプカットと字幕生成まで済ませたあと、友人にはブラウザで字幕修正だけしてもらえます。
+この場合、FFmpeg、Whisper、Python処理はあなたのMac側で動きます。
+
+```bash
+./start_mac_friend_editor.sh
+```
+
+ターミナルに表示される `http://192.168.x.x:8000` のURLを、同じWi-Fiにいる友人へ送ってください。
+友人用モードでは、動画アップロード、ジャンプカット、Whisper字幕生成を画面から隠します。
+
+詳しい手順は [docs/mac_friend_editor.md](docs/mac_friend_editor.md) を参照してください。
+
+## GitHubからWebアプリとして公開する
+
+GitHub Pagesだけでは、Python / FFmpeg / faster-whisper を使うJump Caption本体は動きません。
+Webアプリとして公開する場合は、GitHubにpushしたリポジトリをRender、Fly.io、Google Cloud RunなどのDocker対応サービスへ接続してください。
+
+このリポジトリにはDocker公開用の最小構成を含めています。
+
+- `Dockerfile`
+- `.dockerignore`
+- `render.yaml`
+- `.github/workflows/ci.yml`
+
+詳しい手順は [docs/github_web_app_deploy.md](docs/github_web_app_deploy.md) を参照してください。
+
 ## Test
 
 ```bash

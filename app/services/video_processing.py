@@ -185,7 +185,14 @@ def probe_duration(ffprobe_path: str, input_path: Path) -> float:
         "default=noprint_wrappers=1:nokey=1",
         str(input_path),
     ]
-    result = subprocess.run(command, check=False, capture_output=True, text=True)
+    result = subprocess.run(
+        command,
+        check=False,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+    )
     if result.returncode != 0:
         raise VideoProcessingError(result.stderr.strip() or "ffprobe failed.")
 
@@ -211,7 +218,14 @@ def detect_silences(
         "null",
         "-",
     ]
-    result = subprocess.run(command, check=False, capture_output=True, text=True)
+    result = subprocess.run(
+        command,
+        check=False,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+    )
     log_text = "\n".join(part for part in [result.stdout, result.stderr] if part)
     if result.returncode != 0:
         raise VideoProcessingError(log_text.strip() or "FFmpeg の無音検出に失敗しました。")
@@ -271,7 +285,14 @@ def write_jump_cut(
         "+faststart",
         str(output_path),
     ]
-    result = subprocess.run(command, check=False, capture_output=True, text=True)
+    result = subprocess.run(
+        command,
+        check=False,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+    )
     log_text = "\n".join(part for part in [result.stdout, result.stderr] if part)
     if result.returncode != 0:
         raise VideoProcessingError(log_text.strip() or "FFmpeg のジャンプカットに失敗しました。")

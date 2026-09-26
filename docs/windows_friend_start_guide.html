@@ -1,0 +1,349 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Jump Caption Windowsかんたん開始ガイド</title>
+    <style>
+      :root {
+        --bg: #fffdf7;
+        --panel: #ffffff;
+        --ink: #1f2933;
+        --muted: #5b6773;
+        --line: #d9e2ec;
+        --teal: #087f8c;
+        --coral: #f06449;
+        --yellow: #f7b801;
+        --green: #22a06b;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font-family:
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
+        line-height: 1.75;
+      }
+
+      main {
+        max-width: 980px;
+        margin: 0 auto;
+        padding: 28px 18px 64px;
+      }
+
+      h1,
+      h2,
+      h3 {
+        line-height: 1.3;
+        margin: 0;
+      }
+
+      h2 {
+        margin-bottom: 12px;
+      }
+
+      p {
+        margin: 10px 0;
+      }
+
+      code,
+      pre {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      }
+
+      pre {
+        overflow-x: auto;
+        background: #17212b;
+        color: #ffffff;
+        border-radius: 10px;
+        padding: 14px;
+      }
+
+      .hero {
+        padding: 28px;
+        background: linear-gradient(135deg, #eaf9f6, #fff8e6);
+        border: 1px solid var(--line);
+        border-radius: 18px;
+      }
+
+      .hero h1 {
+        font-size: clamp(2rem, 5vw, 3.6rem);
+        letter-spacing: 0;
+      }
+
+      .lead {
+        color: var(--muted);
+        font-size: 1.1rem;
+        margin-top: 14px;
+      }
+
+      .big-action {
+        display: inline-block;
+        margin-top: 18px;
+        padding: 12px 18px;
+        border-radius: 999px;
+        background: var(--teal);
+        color: #fff;
+        font-size: 1.15rem;
+        font-weight: 900;
+      }
+
+      .section {
+        margin-top: 24px;
+      }
+
+      .card {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 20px;
+      }
+
+      .grid {
+        display: grid;
+        gap: 16px;
+      }
+
+      .two {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .steps {
+        counter-reset: step;
+      }
+
+      .step {
+        position: relative;
+        padding-left: 62px;
+      }
+
+      .step::before {
+        counter-increment: step;
+        content: counter(step);
+        position: absolute;
+        left: 20px;
+        top: 20px;
+        width: 30px;
+        height: 30px;
+        display: grid;
+        place-items: center;
+        border-radius: 999px;
+        background: var(--teal);
+        color: #fff;
+        font-weight: 900;
+      }
+
+      .note {
+        border-left: 6px solid var(--yellow);
+      }
+
+      .ok {
+        border-left: 6px solid var(--green);
+      }
+
+      .warn {
+        border-left: 6px solid var(--coral);
+      }
+
+      ul,
+      ol {
+        padding-left: 1.25rem;
+      }
+
+      li {
+        margin: 6px 0;
+      }
+
+      .badge {
+        display: inline-block;
+        padding: 4px 10px;
+        border-radius: 999px;
+        background: #eef7f6;
+        color: var(--teal);
+        font-weight: 800;
+      }
+
+      @media (max-width: 760px) {
+        .two {
+          grid-template-columns: 1fr;
+        }
+
+        .step {
+          padding-left: 20px;
+        }
+
+        .step::before {
+          position: static;
+          margin-bottom: 10px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <section class="hero">
+        <span class="badge">Windows用</span>
+        <h1>Jump Caption<br />かんたん開始ガイド</h1>
+        <p class="lead">
+          明日、友達のWindows PCで試すための手順です。基本はこれだけです。
+        </p>
+        <div class="big-action">start_windows.bat をダブルクリック</div>
+      </section>
+
+      <section class="section card">
+        <h2>まず渡すもの</h2>
+        <p>友達には、次のフォルダをまるごと渡します。</p>
+        <pre>jump-caption-mvp</pre>
+        <p>おすすめの置き場所:</p>
+        <pre>C:\JumpCaption</pre>
+        <p>
+          このフォルダの中に <strong>start_windows.bat</strong>、
+          <strong>start_windows_core.bat</strong>、
+          <strong>install_ffmpeg_windows.bat</strong>、<strong>app</strong>、
+          <strong>pyproject.toml</strong>、<strong>tools</strong> が入っていればOKです。
+        </p>
+      </section>
+
+      <section class="section">
+        <h2>友達のPCで最初にやること</h2>
+        <div class="grid steps">
+          <article class="card step">
+            <h3>フォルダを開く</h3>
+            <p><strong>jump-caption-mvp</strong> フォルダを開きます。</p>
+          </article>
+          <article class="card step">
+            <h3>起動する</h3>
+            <p><strong>start_windows.bat</strong> をダブルクリックします。</p>
+          </article>
+          <article class="card step">
+            <h3>黒い画面を待つ</h3>
+            <p>Python、FFmpeg、必要なパッケージを確認します。閉じずに待ちます。</p>
+            <p>エラーが出ても黒い画面は閉じないので、表示された日本語メッセージを確認します。</p>
+          </article>
+          <article class="card step">
+            <h3>ブラウザが開いたら準備完了</h3>
+            <p>開くURLは <strong>http://127.0.0.1:8000</strong> です。</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section grid two">
+        <article class="card warn">
+          <h2>Pythonがないと言われたら</h2>
+          <ol>
+            <li>画面に出るPython公式ページを開く</li>
+            <li>Python 3.10 または 3.11 を入れる</li>
+            <li><strong>Add python.exe to PATH</strong> にチェックする</li>
+            <li>もう一度 <strong>start_windows.bat</strong> をダブルクリック</li>
+          </ol>
+          <p>
+            Python 3.13だけが入っているPCでは、字幕生成で止まることがあります。
+            この配布版ではPython 3.10 / 3.11を使います。
+          </p>
+        </article>
+        <article class="card warn">
+          <h2>FFmpegがないと言われたら</h2>
+          <p>画面にこう出たら:</p>
+          <pre>FFmpegを自動インストールしますか？ [Y/Enter]:</pre>
+          <p>
+            まずは <strong>Y</strong> を入力して Enter。終わったら、もう一度
+            <strong>start_windows.bat</strong> をダブルクリックします。
+          </p>
+        </article>
+      </section>
+
+      <section class="section card note">
+        <h2>初回だけ時間がかかります</h2>
+        <ul>
+          <li>仮想環境 <strong>.venv</strong> の作成</li>
+          <li>Pythonパッケージのインストール</li>
+          <li>初めて字幕生成するときのWhisperモデルダウンロード</li>
+        </ul>
+        <p>黒い画面に文字が流れている間は、閉じずに待ってください。</p>
+      </section>
+
+      <section class="section">
+        <h2>Jump Captionの使い方</h2>
+        <div class="grid steps">
+          <article class="card step">
+            <h3>動画を選ぶ</h3>
+            <p>短めの動画から試します。最初は30秒から1分くらいがおすすめです。</p>
+          </article>
+          <article class="card step">
+            <h3>ジャンプカット</h3>
+            <p><strong>ジャンプカット</strong> を押して、無音をカットします。</p>
+          </article>
+          <article class="card step">
+            <h3>字幕生成</h3>
+            <p><strong>字幕生成</strong> を押して、Whisperで字幕を作ります。</p>
+          </article>
+          <article class="card step">
+            <h3>読みやすく整形</h3>
+            <p><strong>字幕を読みやすく整形</strong> を押します。</p>
+          </article>
+          <article class="card step">
+            <h3>直して保存</h3>
+            <p>必要なら手で字幕を直して、<strong>保存</strong> を押します。</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section grid two">
+        <article class="card ok">
+          <h2>出力ファイル</h2>
+          <p>処理結果は <strong>outputs</strong> フォルダに入ります。</p>
+          <ul>
+            <li><strong>_cut.mp4</strong>: CapCutに入れる動画</li>
+            <li><strong>.srt</strong>: 字幕ファイル</li>
+            <li><strong>.txt</strong>: 文字起こしテキスト</li>
+            <li><strong>_subtitles.json</strong>: 再編集用データ</li>
+          </ul>
+        </article>
+        <article class="card">
+          <h2>2回目以降</h2>
+          <p>
+            また <strong>start_windows.bat</strong> をダブルクリックするだけです。
+            初回に作った環境を使うので、通常は初回より早く起動します。
+          </p>
+          <p>
+            <strong>Existing .venv uses unsupported Python</strong> と出たら、
+            Python 3.11を入れたあと <strong>C:\JumpCaption\.venv</strong> を削除して、
+            もう一度起動します。
+          </p>
+          <p>
+            終了するときは黒い画面を閉じます。ブラウザだけ閉じても、黒い画面が残っている間は動いています。
+          </p>
+        </article>
+      </section>
+
+      <section class="section card warn">
+        <h2>困ったとき</h2>
+        <ul>
+          <li>黒い画面に出ている日本語メッセージを見る</li>
+          <li>ブラウザのURLが <strong>http://127.0.0.1:8000</strong> か確認する</li>
+          <li><strong>outputs</strong> フォルダにファイルができているか見る</li>
+          <li>インターネットにつながっているか確認する</li>
+          <li>セキュリティソフトが止めていないか確認する</li>
+        </ul>
+      </section>
+
+      <section class="section card note">
+        <h2>明日のおすすめチェック</h2>
+        <p>最初は、音声入りの短い動画で試してください。</p>
+        <pre>sample.mp4</pre>
+        <p>
+          長い動画や日本語ファイル名は、最初の動作確認が終わってから試すと安心です。
+        </p>
+      </section>
+    </main>
+  </body>
+</html>

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import importlib.util
 import json
 from dataclasses import asdict, dataclass
 from pathlib import Path
@@ -69,11 +70,7 @@ class SubtitleFormatSettings:
 
 
 def faster_whisper_available() -> bool:
-    try:
-        import faster_whisper  # noqa: F401
-    except ImportError:
-        return False
-    return True
+    return importlib.util.find_spec("faster_whisper") is not None
 
 
 def generate_subtitles(

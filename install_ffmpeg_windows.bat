@@ -1,6 +1,5 @@
 @echo off
 setlocal
-chcp 65001 >nul
 
 echo.
 echo ========================================
@@ -10,34 +9,36 @@ echo.
 
 where winget >nul 2>nul
 if errorlevel 1 (
-  echo winget が見つかりません。
-  echo Windows 10/11 の App Installer が有効な環境で使えます。
+  echo winget was not found.
+  echo Please install FFmpeg manually.
   echo.
-  echo 手動で入れる場合:
-  echo 1. https://www.gyan.dev/ffmpeg/builds/ をブラウザで開く
-  echo 2. release builds の ffmpeg-release-essentials.zip をダウンロード
-  echo 3. 展開した bin フォルダを PATH に追加
+  echo Manual install page:
+  echo https://www.gyan.dev/ffmpeg/builds/
   echo.
+  echo Download ffmpeg-release-essentials.zip from release builds.
+  echo Then add the extracted bin folder to PATH.
+  echo.
+  start "" "https://www.gyan.dev/ffmpeg/builds/"
   goto error
 )
 
-echo winget で FFmpeg をインストールします。
-echo 途中で確認画面が出た場合は、内容を確認して続行してください。
+echo Installing FFmpeg with winget...
+echo If Windows asks for confirmation, approve it.
 echo.
 winget install --id Gyan.FFmpeg -e
 if errorlevel 1 goto error
 
 echo.
-echo FFmpeg のインストールが完了しました。
-echo 新しく start_windows.bat を起動し直してください。
-echo まだ見つからない場合は、Windowsを再起動してから試してください。
+echo FFmpeg installation finished.
+echo Run start_windows.bat again.
+echo If FFmpeg is still not found, restart Windows and try again.
 echo.
 pause
 exit /b 0
 
 :error
 echo.
-echo FFmpeg のインストールを完了できませんでした。
-echo 上のメッセージを確認してください。
+echo FFmpeg installation did not finish.
+echo Please read the messages above.
 pause
 exit /b 1
